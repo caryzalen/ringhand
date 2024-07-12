@@ -2,19 +2,20 @@
 <html>
 <head>
     <title>Web AR Ring Try-On</title>
+</head>
+<body>
     <script type="module">
-        // 导入 Three.js
+        // 正确导入 three.js 模块
         import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.135.0/build/three.module.js';
 
-        // 导入 MediaPipe Hands 库
+        // MediaPipe 和其他必需库的导入也需要正确的完整 URL
         import { Hands, HAND_CONNECTIONS, drawConnectors, drawLandmarks } from 'https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js';
         import { Camera } from 'https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js';
 
-        // 这里编写你的代码逻辑
+        // 确保导入的 URL 是正确的，并且库版本匹配
+        console.log(THREE); // 测试 THREE 是否成功导入
 
+        // 这里开始你的应用逻辑
     </script>
-</head>
-<body>
-    <!-- 你的 HTML 内容 -->
 </body>
 </html>
