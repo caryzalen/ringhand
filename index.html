@@ -5,7 +5,7 @@
   <title>AR Ring Try-On</title>
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.3.1627434030/hands.min.js"></script>
 </head>
 <body style='margin: 0; overflow: hidden;'>
   <a-scene embedded arjs>
@@ -36,6 +36,9 @@
       .then((stream) => {
         videoElement.srcObject = stream;
         videoElement.play();
+      })
+      .catch((error) => {
+        console.error('Error accessing the camera:', error);
       });
 
     function onResults(results) {
@@ -49,7 +52,10 @@
     }
 
     function processVideoFrame() {
-      hands.send({image: videoElement});
+      hands.send({image: videoElement})
+        .catch((error) => {
+          console.error('Error processing video frame:', error);
+        });
       requestAnimationFrame(processVideoFrame);
     }
 
