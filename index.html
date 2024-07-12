@@ -1,84 +1,59 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <title>MediaPipe Hands Debug</title>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
-    <style>
-      #output {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
+<head>
+  <meta charset="utf-8">
+  <title>AR Ring Try-On</title>
+  <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands"></script>
+</head>
+<body style='margin: 0; overflow: hidden;'>
+  <a-scene embedded arjs>
+    <a-marker-camera preset="hiro"></a-marker-camera>
+    <a-entity id="ring" geometry="primitive: ring; radiusInner: 0.1; radiusOuter: 0.15" material="color: gold"></a-entity>
+  </a-scene>
+
+  <script>
+    const hands = new Hands({locateFile: (file) => {
+      return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+    }});
+
+    hands.setOptions({
+      maxNumHands: 1,
+      modelComplexity: 1,
+      minDetectionConfidence: 0.5,
+      minTrackingConfidence: 0.5
+    });
+
+    hands.onResults(onResults);
+
+    const videoElement = document.createElement('video');
+    videoElement.width = 640;
+    videoElement.height = 480;
+    videoElement.autoplay = true;
+
+    navigator.mediaDevices.getUserMedia({video: true})
+      .then((stream) => {
+        videoElement.srcObject = stream;
+        videoElement.play();
+      });
+
+    function onResults(results) {
+      if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+        const landmarks = results.multiHandLandmarks[0];
+        const ringEntity = document.querySelector('#ring');
+        const x = (landmarks[9].x - 0.5) * 4;
+        const y = (landmarks[9].y - 0.5) * -4;
+        ringEntity.setAttribute('position', `${x} ${y} -2`);
       }
-      .landmark {
-        position: absolute;
-        width: 10px;
-        height: 10px;
-        background-color: blue;
-        border-radius: 50%;
-      }
-    </style>
-  </head>
-  <body>
-    <h1>MediaPipe Hands Debug</h1>
-    <video id="input-video" style="display:none;"></video>
-    <div id="output"></div>
-    <script>
-      const videoElement = document.getElementById('input-video');
-      const outputElement = document.getElementById('output');
+    }
 
-      navigator.mediaDevices.getUserMedia({video: true})
-        .then(stream => {
-          videoElement.srcObject = stream;
-          videoElement.play();
-          console.log('Camera stream started'); // Debug log
-        })
-        .catch(err => console.error('Error accessing camera:', err));
+    function processVideoFrame() {
+      hands.send({image: videoElement});
+      requestAnimationFrame(processVideoFrame);
+    }
 
-      const hands = new Hands({
-        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
-      });
-
-      hands.setOptions({
-        maxNumHands: 1,
-        modelComplexity: 1,
-        minDetectionConfidence: 0.5,
-        minTrackingConfidence: 0.5
-      });
-
-      hands.onResults(results => {
-        console.log('Hand tracking results:', results); // Debug log
-        outputElement.innerHTML = ''; // Clear previous landmarks
-
-        if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-          const handLandmarks = results.multiHandLandmarks[0];
-          handLandmarks.forEach((landmark, index) => {
-            const x = landmark.x * outputElement.clientWidth;
-            const y = landmark.y * outputElement.clientHeight;
-            console.log(`Point ${index}: x=${x}, y=${y}, z=${landmark.z}`); // Debug log
-
-            const pointElement = document.createElement('div');
-            pointElement.className = 'landmark';
-            pointElement.style.left = `${x}px`;
-            pointElement.style.top = `${y}px`;
-            outputElement.appendChild(pointElement);
-          });
-        }
-      });
-
-      videoElement.onloadeddata = (event) => {
-        console.log('Video loaded'); // Debug log
-        const camera = new Camera(videoElement, {
-          onFrame: async () => {
-            await hands.send({image: videoElement});
-          },
-          width: 640,
-          height: 480
-        });
-        camera.start();
-      };
-    </script>
-  </body>
+    processVideoFrame();
+  </script>
+</body>
 </html>
