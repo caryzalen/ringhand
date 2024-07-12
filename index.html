@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>AR Hand Tracking with Ring Model</title>
+    <title>AR Hand Tracking</title>
     <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
@@ -10,12 +10,9 @@
   </head>
   <body style="margin: 0; overflow: hidden;">
     <a-scene vr-mode-ui="enabled: false;" arjs="sourceType: webcam;">
-      <a-assets>
-        <a-asset-item id="ring-model" src="assets/ring.glb"></a-asset-item>
-      </a-assets>
-      <a-entity id="ring" gltf-model="#ring-model" scale="0.01 0.01 0.01" position="0 0 -2"></a-entity>
-      <a-entity camera></a-entity>
+      <!-- A-Frame entities for displaying hand keypoints -->
       <a-entity id="hand-points"></a-entity>
+      <a-entity camera></a-entity>
     </a-scene>
     <script>
       const videoElement = document.createElement('video');
@@ -45,40 +42,19 @@
         if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
           const handLandmarks = results.multiHandLandmarks[0];
 
-          handLandmarks.forEach((point, index) => {
-            const x = point.x * 2 - 1;  // Normalize to A-Frame coordinates
-            const y = -(point.y * 2 - 1);  // Normalize to A-Frame coordinates
-            const z = -point.z;  // Depth
+          handLandmarks.forEach((landmark, index) => {
+            const x = landmark.x * 2 - 1;  // Normalize to A-Frame coordinates
+            const y = -(landmark.y * 2 - 1);  // Normalize to A-Frame coordinates
+            const z = -landmark.z;  // Depth
 
-            const pointEntity = document.createElement('a-sphere');
-            pointEntity.setAttribute('position', {x, y, z});
-            pointEntity.setAttribute('radius', 0.02);
-            pointEntity.setAttribute('color', 'blue');
-            pointEntity.setAttribute('id', `point-${index}`);
+            const point = document.createElement('a-sphere');
+            point.setAttribute('position', {x, y, z});
+            point.setAttribute('radius', 0.02);
+            point.setAttribute('color', 'blue');
+            point.setAttribute('id', `point-${index}`);
 
-            handPointsEntity.appendChild(pointEntity);
+            handPointsEntity.appendChild(point);
           });
-
-          // Get specific points for the ring positioning
-          const fingerTip = handLandmarks[8];  // Index finger tip
-          const fingerBase = handLandmarks[5]; // Index finger base
-
-          // Calculate position
-          const ringX = fingerTip.x * 2 - 1;  // Normalize to A-Frame coordinates
-          const ringY = -(fingerTip.y * 2 - 1);  // Normalize to A-Frame coordinates
-          const ringZ = -fingerTip.z;  // Depth
-
-          // Set position
-          const ringEntity = document.querySelector('#ring');
-          ringEntity.setAttribute('position', {x: ringX, y: ringY, z: ringZ});
-
-          // Calculate rotation
-          const dx = fingerTip.x - fingerBase.x;
-          const dy = fingerTip.y - fingerBase.y;
-          const angle = Math.atan2(dy, dx) * (180 / Math.PI);
-
-          // Set rotation
-          ringEntity.setAttribute('rotation', {x: 0, y: 0, z: -angle});
         }
       }
     </script>
