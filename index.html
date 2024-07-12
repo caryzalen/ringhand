@@ -2,10 +2,15 @@
 <html>
 <head>
     <title>Web AR Ring Try-On</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.135.0/build/three.min.js"></script>
-    <script type="module" src="app.js"></script>
+    <script type="module">
+        // Import necessary modules directly from CDN
+        import * as tf from 'https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js';
+        import * as handPose from 'https://cdn.jsdelivr.net/npm/@mediapipe/hands';
+        import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.135.0/build/three.module.js';
+
+        // Your application logic here
+        // You can include the content of app.js inside this script tag, adapting the imports as shown
+    </script>
 </head>
 <body>
 </body>
