@@ -3,55 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AR Ring Try-On</title>
-    <script src="https://apps.8thwall.com/xrweb?appKey=YOUR_8TH_WALL_APP_KEY"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <title>Zappar WebAR Example</title>
+    <style>
+        body { margin: 0; }
+        canvas { display: block; }
+    </style>
 </head>
-<body style="margin:0; overflow:hidden;">
-    <canvas id="camerafeed"></canvas>
-    <script>
-        // 初始化XR，設置三維場景
-        XR.addCameraPipelineModule(XR.Threejs.pipelineModule()); // 使用Three.js作為渲染器
-        XR.addCameraPipelineModule(XR.XrController.pipelineModule()); // 控制AR功能
-
-        // 定義一個變量來存儲3D戒指模型
-        let ringMesh;
-
-        window.onload = () => {
-            XR.run({canvas: document.getElementById('camerafeed')});
-
-            // 加載戒指模型
-            const loader = new THREE.GLTFLoader();
-            loader.load('path_to_your_ring_model.glb', function(gltf) {
-                ringMesh = gltf.scene;
-                XR.Threejs.xrScene().scene.add(ringMesh);
-                ringMesh.visible = false; // 初始時不顯示戒指
-            });
-
-            // 設定當手部被檢測到時的行為
-            XR.XrController.updateCameraProjectionMatrix({
-                origin: window.camera.position,
-                facing: XR.XrConfig.facingMode().environment,
-            });
-
-            XR.XrController.handSegmentationWorker().then(worker => {
-                worker.onhandsegmentation = (hands) => {
-                    if (hands.length > 0) {
-                        const hand = hands[0]; // 取第一隻手
-                        const indexFinger = hand.joints['index-finger-tip']; // 獲取食指尖的位置
-
-                        if (ringMesh) {
-                            ringMesh.position.set(indexFinger.x, indexFinger.y, indexFinger.z);
-                            ringMesh.visible = true;
-                        }
-                    } else {
-                        if (ringMesh) {
-                            ringMesh.visible = false; // 如果沒有檢測到手，隱藏戒指
-                        }
-                    }
-                };
-            });
-        };
-    </script>
+<body>
+    <!-- 引入Zappar的JavaScript庫 -->
+    <script src="https://libs.zappar.com/zappar-js/0.3.0/zappar.js"></script>
+    <!-- 引入Three.js庫 -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.125.0/build/three.min.js"></script>
+    <!-- 引入GLTFLoader以加載3D模型 -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.125.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="app.js"></script>
 </body>
 </html>
