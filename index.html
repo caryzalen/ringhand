@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>002</title>
+    <title>Web AR Hand Tracking with 3D Ring Model</title>
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
@@ -11,7 +11,7 @@
 <body>
     <a-scene embedded arjs='sourceType: webcam; debugUIEnabled: false;'>
         <a-assets>
-            <a-asset-item id="ring-model" src="assets/ring.glb"></a-asset-item>
+            <a-asset-item id="ring-model" src="path_to_your_ring_model.glb"></a-asset-item>
         </a-assets>
         <a-entity camera></a-entity>
         <a-entity id="ring" gltf-model="#ring-model" position="0 0 0" scale="0.01 0.01 0.01"></a-entity>
