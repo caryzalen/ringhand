@@ -4,12 +4,30 @@
     <title>MediaPipe Hands Debug</title>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+    <style>
+      #output {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+      }
+      .landmark {
+        position: absolute;
+        width: 10px;
+        height: 10px;
+        background-color: blue;
+        border-radius: 50%;
+      }
+    </style>
   </head>
   <body>
     <h1>MediaPipe Hands Debug</h1>
     <video id="input-video" style="display:none;"></video>
+    <div id="output"></div>
     <script>
       const videoElement = document.getElementById('input-video');
+      const outputElement = document.getElementById('output');
 
       navigator.mediaDevices.getUserMedia({video: true})
         .then(stream => {
@@ -32,10 +50,20 @@
 
       hands.onResults(results => {
         console.log('Hand tracking results:', results); // Debug log
+        outputElement.innerHTML = ''; // Clear previous landmarks
+
         if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
           const handLandmarks = results.multiHandLandmarks[0];
           handLandmarks.forEach((landmark, index) => {
-            console.log(`Point ${index}: x=${landmark.x}, y=${landmark.y}, z=${landmark.z}`); // Debug log
+            const x = landmark.x * outputElement.clientWidth;
+            const y = landmark.y * outputElement.clientHeight;
+            console.log(`Point ${index}: x=${x}, y=${y}, z=${landmark.z}`); // Debug log
+
+            const pointElement = document.createElement('div');
+            pointElement.className = 'landmark';
+            pointElement.style.left = `${x}px`;
+            pointElement.style.top = `${y}px`;
+            outputElement.appendChild(pointElement);
           });
         }
       });
