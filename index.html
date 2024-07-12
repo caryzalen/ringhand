@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>004</title>
+    <title>Web AR Hand Tracking with 3D Ring Model</title>
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
@@ -14,7 +14,7 @@
             <a-asset-item id="ring-model" src="assets/ring.glb"></a-asset-item>
         </a-assets>
         <a-entity camera></a-entity>
-        <a-entity id="ring" gltf-model="#ring-model" position="0 0 0" scale="0.01 0.01 0.01"></a-entity>
+        <a-entity id="ring" gltf-model="#ring-model" position="0 0 -1" scale="0.02 0.02 0.02"></a-entity>
     </a-scene>
     <canvas id="outputCanvas" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%;"></canvas>
     <script>
@@ -47,12 +47,15 @@
 
                 if (results.multiHandLandmarks) {
                     for (const landmarks of results.multiHandLandmarks) {
-                        drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, {color: '#00FF00', lineWidth: 5});
-                        drawLandmarks(canvasCtx, landmarks, {color: '#FF0000', lineWidth: 2});
-
                         const middleFingerTip = landmarks[12]; // Assuming landmark 12 is the tip of the middle finger
+                        
+                        // 计算在A-Frame中的位置
+                        const x = (middleFingerTip.x - 0.5) * 2; // 从0-1范围转换到-1到1
+                        const y = (middleFingerTip.y - 0.5) * -2; // 从0-1范围转换到-1到1，并反转y轴
+                        const z = -1; // 根据实际情况调整Z坐标
+
                         const ring = document.getElementById('ring');
-                        ring.setAttribute('position', `${middleFingerTip.x * canvasElement.width} ${middleFingerTip.y * canvasElement.height} 0`);
+                        ring.setAttribute('position', `${x} ${y} ${z}`);
                     }
                 }
                 canvasCtx.restore();
@@ -67,28 +70,6 @@
             });
             camera.start();
         });
-
-        function drawLandmarks(ctx, landmarks, style = {}) {
-            ctx.fillStyle = style.color || 'red';
-            for (const landmark of landmarks) {
-                ctx.beginPath();
-                ctx.arc(landmark.x * ctx.canvas.width, landmark.y * ctx.canvas.height, style.lineWidth || 5, 0, 2 * Math.PI);
-                ctx.fill();
-            }
-        }
-
-        function drawConnectors(ctx, landmarks, connections, style = {}) {
-            ctx.beginPath();
-            ctx.strokeStyle = style.color || 'green';
-            ctx.lineWidth = style.lineWidth;
-            for (const [startIdx, endIdx] of connections) {
-                const start = landmarks[startIdx];
-                const end = landmarks[endIdx];
-                ctx.moveTo(start.x * ctx.canvas.width, start.y * ctx.canvas.height);
-                ctx.lineTo(end.x * ctx.canvas.width, end.y * ctx.canvas.height);
-            }
-            ctx.stroke();
-        }
     </script>
 </body>
 </html>
