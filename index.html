@@ -18,32 +18,14 @@
             embedded
             gesture-detector
         >
-            <a-assets>
-                <a-asset-item
-                    id="animated-asset"
-                    src="assets/asset.glb"
-                ></a-asset-item>
-            </a-assets>
-
-            <a-marker
-                id="animated-marker"
-                type="pattern"
-                preset="custom"
-                url="assets/marker.patt"
-                raycaster="objects: .clickable"
-                emitevents="true"
-                cursor="fuse: false; rayOrigin: mouse;"
-                id="markerA"
-            >
-                <a-entity
+            <a-entity
                     id="bowser-model"
                     scale="0.08675078655565938 0.08675078655565938 0.08675078655565938"
                     animation-mixer="loop: repeat"
                     gltf-model="#animated-asset"
                     class="clickable"
                     gesture-handler
-                ></a-entity>
-            </a-marker>
+           ></a-entity>
 
             <a-entity camera></a-entity>
         </a-scene>
