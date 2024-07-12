@@ -1,10 +1,17 @@
+// 導入Three.js和相關的模塊
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three/build/three.module.js';
+import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three/examples/jsm/loaders/GLTFLoader.js';
+
+// 假設Zappar支持模塊導入，如果不支持，需要另外檢查文檔
+import { Camera, ImageTracker } from 'https://your-zappar-link/zappar.js';
+
 document.addEventListener('DOMContentLoaded', function() {
     // 建立Zappar的相機
-    let camera = new Zappar.Camera();
+    let camera = new Camera();
     document.body.appendChild(camera.element);
 
     // 建立影像追蹤器
-    let tracker = new Zappar.ImageTracker();
+    let tracker = new ImageTracker();
     tracker.load("https://yourserver.com/path/to/your-target.zpt");
 
     // 建立Three.js的場景
@@ -19,8 +26,8 @@ document.addEventListener('DOMContentLoaded', function() {
     scene.add(directionalLight);
 
     // 加載3D模型
-    let loader = new THREE.GLTFLoader();
-    loader.load('assets/ring.glb', function(gltf) {
+    let loader = new GLTFLoader();
+    loader.load('https://yourserver.com/path/to/your-model.glb', function(gltf) {
         scene.add(gltf.scene);
     });
 
