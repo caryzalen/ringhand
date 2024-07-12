@@ -16,14 +16,11 @@
         <a-entity camera></a-entity>
         <a-entity id="ring" gltf-model="#ring-model" position="0 0 -1" scale="0.02 0.02 0.02"></a-entity>
     </a-scene>
-    <canvas id="outputCanvas" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%;"></canvas>
+    <canvas id="outputCanvas" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1;"></canvas>
+    <video id="inputVideo" style="display: none;"></video>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const videoElement = document.createElement('video');
-            videoElement.setAttribute('autoplay', true);
-            videoElement.setAttribute('muted', true);
-            videoElement.setAttribute('playsinline', true);
-            
+            const videoElement = document.getElementById('inputVideo');
             const canvasElement = document.getElementById('outputCanvas');
             const canvasCtx = canvasElement.getContext('2d');
             canvasElement.width = window.innerWidth;
@@ -70,6 +67,28 @@
             });
             camera.start();
         });
+
+        function drawLandmarks(ctx, landmarks, style = {}) {
+            ctx.fillStyle = style.color || 'red';
+            for (const landmark of landmarks) {
+                ctx.beginPath();
+                ctx.arc(landmark.x * ctx.canvas.width, landmark.y * ctx.canvas.height, style.lineWidth || 5, 0, 2 * Math.PI);
+                ctx.fill();
+            }
+        }
+
+        function drawConnectors(ctx, landmarks, connections, style = {}) {
+            ctx.beginPath();
+            ctx.strokeStyle = style.color || 'green';
+            ctx.lineWidth = style.lineWidth;
+            for (const [startIdx, endIdx] of connections) {
+                const start = landmarks[startIdx];
+                const end = landmarks[endIdx];
+                ctx.moveTo(start.x * ctx.canvas.width, start.y * ctx.canvas.height);
+                ctx.lineTo(end.x * ctx.canvas.width, end.y * ctx.canvas.height);
+            }
+            ctx.stroke();
+        }
     </script>
 </body>
 </html>
