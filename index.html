@@ -1,72 +1,64 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>02</title>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
-  <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>03</title>
+    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
 </head>
 <body>
-  <a-scene>
-    <a-entity camera></a-entity>
-    <a-entity id="hand-points"></a-entity>
-  </a-scene>
-  
-  <video id="input-video" style="display:none;"></video>
-  <canvas id="output-canvas"></canvas>
+    <a-scene embedded arjs='sourceType: webcam;'>
+        <a-entity camera look-controls></a-entity>
+    </a-scene>
 
-  <script>
-    const videoElement = document.getElementById('input-video');
-    const canvasElement = document.getElementById('output-canvas');
-    const canvasCtx = canvasElement.getContext('2d');
+    <script>
+        const videoElement = document.createElement('video');
+        const hands = new Hands({
+            locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+        });
 
-    const hands = new Hands({
-      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`,
-    });
+        hands.setOptions({
+            maxNumHands: 1,
+            modelComplexity: 1,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5
+        });
 
-    hands.setOptions({
-      maxNumHands: 1,
-      modelComplexity: 1,
-      minDetectionConfidence: 0.5,
-      minTrackingConfidence: 0.5,
-    });
+        const camera = new Camera(videoElement, {
+            onFrame: async () => {
+                await hands.send({image: videoElement});
+            },
+            width: 1280,
+            height: 720
+        });
+        camera.start();
 
-    hands.onResults(onResults);
+        hands.onResults(results => {
+            clearPoints();
 
-    const camera = new Camera(videoElement, {
-      onFrame: async () => {
-        await hands.send({image: videoElement});
-      },
-      width: 1280,
-      height: 720
-    });
-    camera.start();
+            if (results.multiHandLandmarks) {
+                for (const landmarks of results.multiHandLandmarks) {
+                    drawLandmarks(landmarks);
+                }
+            }
+        });
 
-    function onResults(results) {
-      canvasCtx.save();
-      canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-      canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
-      
-      if (results.multiHandLandmarks) {
-        for (const landmarks of results.multiHandLandmarks) {
-          drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, {color: '#00FF00', lineWidth: 5});
-          drawLandmarks(canvasCtx, landmarks, {color: '#FF0000', lineWidth: 2});
-          
-          // 在 A-Frame 中创建手部点
-          const handPoints = document.getElementById('hand-points');
-          handPoints.innerHTML = ''; // 清除之前的点
-          for (const point of landmarks) {
-            const pointEl = document.createElement('a-sphere');
-            pointEl.setAttribute('radius', '0.01');
-            pointEl.setAttribute('color', '#FF0000');
-            pointEl.setAttribute('position', `${point.x - 0.5} ${point.y - 0.5} -1`);
-            handPoints.appendChild(pointEl);
-          }
+        function drawLandmarks(landmarks) {
+            landmarks.forEach(landmark => {
+                const point = document.createElement('a-sphere');
+                point.setAttribute('position', `${landmark.x * 1280} ${landmark.y * 720} 0`);
+                point.setAttribute('color', 'green');
+                point.setAttribute('radius', '1.5');
+                document.querySelector('a-scene').appendChild(point);
+            });
         }
-      }
-      canvasCtx.restore();
-    }
-  </script>
+
+        function clearPoints() {
+            const points = document.querySelectorAll('a-sphere');
+            points.forEach(point => point.remove());
+        }
+    </script>
 </body>
 </html>
