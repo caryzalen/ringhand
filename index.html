@@ -3,42 +3,51 @@
 <head>
     <meta charset="UTF-8">
     <title>MediaPipe Hands Example</title>
-    <!-- 引入 TensorFlow.js 库 -->
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-    <!-- 引入 MediaPipe Hands 库 -->
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands"></script>
-    <!-- 引入 Three.js 库 -->
-    <script src="https://cdn.jsdelivr.net/npm/three@0.135.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>  <!-- TensorFlow.js -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands"></script> <!-- MediaPipe Hands -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.135.0/build/three.min.js"></script> <!-- Three.js -->
 </head>
 <body>
-    <script>
-        // 定义全局变量，以便于在页面其他部分使用
-        let camera;
+    <video id="videoElement" style="display:none;"></video> <!-- 隐藏的视频元素 -->
+    <canvas id="canvasElement"></canvas> <!-- 用于绘制输出的画布 -->
+    <script type="text/javascript">
+        const videoElement = document.getElementById('videoElement');
+        const canvasElement = document.getElementById('canvasElement');
+        const canvasCtx = canvasElement.getContext('2d');
 
-        // 确保所有依赖完全加载
-        window.onload = function () {
-            // 检查 MediaPipe Hands 和 Camera 是否可用
-            if (typeof hands !== 'undefined' && typeof CameraUtils !== 'undefined') {
-                console.log("MediaPipe Hands and CameraUtils are loaded");
-
-                // 配置 MediaPipe Hands
-                const hands = new mpHands.Hands({
-                    locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
-                });
-
-                // 配置摄像头
-                camera = new CameraUtils.Camera(videoElement, {
-                    onFrame: async () => {
-                        await hands.send({image: videoElement});
-                    },
-                    width: 1280,
-                    height: 720
-                });
-                camera.start();
-            } else {
-                console.error("MediaPipe Hands or CameraUtils not loaded properly.");
+        function onResults(results) {
+            canvasCtx.save();
+            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+            canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+            if (results.multiHandLandmarks) {
+                for (const landmarks of results.multiHandLandmarks) {
+                    drawConnectors(canvasCtx, landmarks, mpHands.HAND_CONNECTIONS, {color: '#00FF00', lineWidth: 5});
+                    drawLandmarks(canvasCtx, landmarks, {color: '#FF0000', lineWidth: 2});
+                }
             }
-        };
+            canvasCtx.restore();
+        }
+
+        const hands = new mpHands.Hands({
+            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+        });
+        hands.setOptions({
+            maxNumHands: 2,
+            modelComplexity: 1,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5
+        });
+        hands.onResults(onResults);
+
+        const camera = new Camera(videoElement, {
+            onFrame: async () => {
+                await hands.send({image: videoElement});
+            },
+            width: 1280,
+            height: 720
+        });
+        camera.start();
     </script>
 </body>
 </html>
+
