@@ -1,65 +1,78 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <meta charset="utf-8">
-  <title>AR Ring Try-On2</title>
-  <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.3.1627434030/hands.min.js"></script>
-</head>
-<body style='margin: 0; overflow: hidden;'>
-  <a-scene embedded arjs>
-    <a-marker-camera preset="hiro"></a-marker-camera>
-    <a-entity id="ring" geometry="primitive: ring; radiusInner: 0.1; radiusOuter: 0.15" material="color: gold"></a-entity>
-  </a-scene>
+  <head>
+    <meta charset="utf-8">
+    <title>Hand Tracking with Mediapipe and A-Frame</title>
+    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+  </head>
+  <body>
+    <a-scene>
+      <a-entity camera></a-entity>
+      <a-entity id="hand-points"></a-entity>
+    </a-scene>
 
-  <script>
-    const hands = new Hands({locateFile: (file) => {
-      return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
-    }});
-
-    hands.setOptions({
-      maxNumHands: 1,
-      modelComplexity: 1,
-      minDetectionConfidence: 0.5,
-      minTrackingConfidence: 0.5
-    });
-
-    hands.onResults(onResults);
-
-    const videoElement = document.createElement('video');
-    videoElement.width = 640;
-    videoElement.height = 480;
-    videoElement.autoplay = true;
-
-    navigator.mediaDevices.getUserMedia({video: true})
-      .then((stream) => {
-        videoElement.srcObject = stream;
-        videoElement.play();
-      })
-      .catch((error) => {
-        console.error('Error accessing the camera:', error);
+    <script>
+      const hands = new Hands({
+        locateFile: (file) => {
+          return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+        }
       });
 
-    function onResults(results) {
-      if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-        const landmarks = results.multiHandLandmarks[0];
-        const ringEntity = document.querySelector('#ring');
-        const x = (landmarks[9].x - 0.5) * 4;
-        const y = (landmarks[9].y - 0.5) * -4;
-        ringEntity.setAttribute('position', `${x} ${y} -2`);
+      hands.setOptions({
+        maxNumHands: 1,
+        modelComplexity: 1,
+        minDetectionConfidence: 0.5,
+        minTrackingConfidence: 0.5
+      });
+
+      hands.onResults(onResults);
+
+      const videoElement = document.createElement('video');
+      const camera = new Camera(videoElement, {
+        onFrame: async () => {
+          await hands.send({image: videoElement});
+        },
+        width: 640,
+        height: 480
+      });
+      camera.start();
+
+      function onResults(results) {
+        const handPointsEntity = document.getElementById('hand-points');
+        handPointsEntity.innerHTML = ''; // 清空之前的點
+
+        if (results.multiHandLandmarks) {
+          for (const landmarks of results.multiHandLandmarks) {
+            let ringPosition = null;
+            landmarks.forEach((landmark, index) => {
+              const x = (landmark.x - 0.5) * 2;
+              const y = (landmark.y - 0.5) * -2;
+              const z = landmark.z * -1;
+
+              if (index === 5) { // 食指指根
+                ringPosition = `${x} ${y} ${z}`;
+              }
+
+              const point = document.createElement('a-sphere');
+              point.setAttribute('position', `${x} ${y} ${z}`);
+              point.setAttribute('radius', '0.01');
+              point.setAttribute('color', 'red');
+              handPointsEntity.appendChild(point);
+            });
+
+            if (ringPosition) {
+              const ring = document.createElement('a-ring');
+              ring.setAttribute('position', ringPosition);
+              ring.setAttribute('radius-inner', '0.015');
+              ring.setAttribute('radius-outer', '0.02');
+              ring.setAttribute('color', 'gold');
+              handPointsEntity.appendChild(ring);
+            }
+          }
+        }
       }
-    }
-
-    function processVideoFrame() {
-      hands.send({image: videoElement})
-        .catch((error) => {
-          console.error('Error processing video frame:', error);
-        });
-      requestAnimationFrame(processVideoFrame);
-    }
-
-    processVideoFrame();
-  </script>
-</body>
+    </script>
+  </body>
 </html>
