@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>02</title>
+    <title>Web AR Ring Try-On</title>
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
@@ -17,20 +17,21 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const scene = document.querySelector('a-scene').object3D; // 获取A-Frame场景的Three.js对象
-            initializeApp();
+            const scene = document.querySelector('a-scene').object3D;
+            let ringMesh = null;
 
-            async function initializeApp() {
-                try {
-                    const ringMesh = await loadModel('assets/ring.glb');
+            loadModel('assets/ring_model.glb')
+                .then(model => {
+                    ringMesh = model;
                     scene.add(ringMesh);
-                    initHandTracking(ringMesh);
                     document.getElementById('loading').style.display = 'none';
                     document.querySelector('a-scene').style.display = 'block';
-                } catch (error) {
-                    document.getElementById('loading').textContent = 'Failed to load model: ' + error.message;
-                }
-            }
+                    initHandTracking();
+                })
+                .catch(error => {
+                    console.error('Failed to load the model:', error);
+                    document.getElementById('loading').textContent = 'Failed to load the model. Please check the console for more details.';
+                });
 
             function loadModel(url) {
                 return new Promise((resolve, reject) => {
@@ -43,7 +44,7 @@
                 });
             }
 
-            function initHandTracking(ringMesh) {
+            function initHandTracking() {
                 const hands = new Hands({
                     locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
                 });
@@ -67,20 +68,20 @@
                 });
                 camera.start();
                 hands.onResults(results => {
-                    if (results.multiHandLandmarks) {
+                    if (results.multiHandLandmarks && ringMesh) {
                         updateRingPosition(results.multiHandLandmarks[0], ringMesh);
                     }
                 });
             }
 
             function updateRingPosition(handLandmarks, ringMesh) {
-                const baseJointIndex = 9; // 无名指的基部关节
-                const tipJointIndex = 12; // 无名指的尖端关节
-                if (!handLandmarks || handLandmarks.length <= tipJointIndex) {
+                if (!handLandmarks || handLandmarks.length < 21) {
                     console.error('Hand landmarks data is insufficient.');
                     return;
                 }
 
+                const baseJointIndex = 9;
+                const tipJointIndex = 12;
                 const baseJoint = handLandmarks[baseJointIndex];
                 const tipJoint = handLandmarks[tipJointIndex];
 
