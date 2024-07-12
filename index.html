@@ -3,85 +3,116 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>03</title>
+    <title>Web AR Ring Try-On</title>
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
     <script src="https://threejs.org/build/three.js"></script>
 </head>
 <body>
-    <a-scene embedded arjs='sourceType: webcam; debugUIEnabled: false;'>
+    <div id="loading">Loading...</div>
+    <a-scene embedded arjs='sourceType: webcam; debugUIEnabled: false;' style="display: none;">
         <a-entity camera></a-entity>
     </a-scene>
+
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', initializeApp);
+
+        function initializeApp() {
             const scene = document.querySelector('a-scene').object3D; // 获取A-Frame场景的Three.js对象
-
-            // 加载3D模型
-            const loader = new THREE.GLTFLoader();
             let ringMesh;
-            loader.load('assets/ring.glb', function(gltf) {
-                ringMesh = gltf.scene;
-                scene.add(ringMesh); // 将戒指模型添加到场景
-            });
 
-            // 设置MediaPipe和手部追踪
-            const hands = new Hands({
-                locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
-            });
-            hands.setOptions({
-                maxNumHands: 1,
-                modelComplexity: 1,
-                minDetectionConfidence: 0.5,
-                minTrackingConfidence: 0.5
-            });
+            loadRingModel()
+                .then(initHandTracking)
+                .then(() => {
+                    document.getElementById('loading').style.display = 'none';
+                    document.querySelector('a-scene').style.display = 'block';
+                })
+                .catch(error => {
+                    console.error('Initialization failed:', error);
+                    document.getElementById('loading').textContent = 'Initialization failed. Please check the console for more information.';
+                });
 
-            hands.onResults((results) => {
-                if (results.multiHandLandmarks && ringMesh) {
-                    updateRingPosition(results.multiHandLandmarks[0], ringMesh);
-                }
-            });
+            function loadRingModel() {
+                return new Promise((resolve, reject) => {
+                    const loader = new THREE.GLTFLoader();
+                    loader.load('assets/ring.glb', function(gltf) {
+                        ringMesh = gltf.scene;
+                        scene.add(ringMesh); // 将戒指模型添加到场景
+                        resolve(ringMesh);
+                    }, undefined, function(error) {
+                        reject(error);
+                    });
+                });
+            }
 
-            const videoElement = document.createElement('video');
-            const camera = new Camera(videoElement, {
-                onFrame: async () => {
-                    await hands.send({image: videoElement});
-                },
-                width: 1280,
-                height: 720
-            });
-            camera.start();
+            function initHandTracking() {
+                return new Promise((resolve, reject) => {
+                    const hands = new Hands({
+                        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+                    });
+                    hands.setOptions({
+                        maxNumHands: 1,
+                        modelComplexity: 1,
+                        minDetectionConfidence: 0.5,
+                        minTrackingConfidence: 0.5
+                    });
+                    const videoElement = document.createElement('video');
+                    const camera = new Camera(videoElement, {
+                        onFrame: async () => {
+                            try {
+                                await hands.send({image: videoElement});
+                            } catch (error) {
+                                reject(error);
+                            }
+                        },
+                        width: 1280,
+                        height: 720
+                    });
+                    camera.start();
+                    hands.onResults(results => {
+                        if (results.multiHandLandmarks && ringMesh) {
+                            updateRingPosition(results.multiHandLandmarks[0], ringMesh);
+                        }
+                    });
+                    resolve();
+                });
+            }
 
             function updateRingPosition(handLandmarks, ringMesh) {
+                if (!handLandmarks) return;
+
                 const baseJointIndex = 9;
                 const tipJointIndex = 12;
-                const baseJoint = handLandmarks[baseJointIndex];
-                const tipJoint = handLandmarks[tipJointIndex];
-                
-                const fingerMidX = (baseJoint.x + tipJoint.x) / 2;
-                const fingerMidY = (baseJoint.y + tipJoint.y) / 2;
-                const fingerMidZ = (baseJoint.z + tipJoint.z) / 2;
-                
-                ringMesh.position.set(fingerMidX, fingerMidY, fingerMidZ);
+                if (handLandmarks.length > baseJointIndex && handLandmarks.length > tipJointIndex) {
+                    const baseJoint = handLandmarks[baseJointIndex];
+                    const tipJoint = handLandmarks[tipJointIndex];
 
-                const fingerDiameter = Math.sqrt(
-                    (tipJoint.x - baseJoint.x) ** 2 +
-                    (tipJoint.y - baseJoint.y) ** 2 +
-                    (tipJoint.z - baseJoint.z) ** 2
-                );
-                ringMesh.scale.set(fingerDiameter, fingerDiameter, fingerDiameter);
+                    const fingerMidX = (baseJoint.x + tipJoint.x) / 2;
+                    const fingerMidY = (baseJoint.y + tipJoint.y) / 2;
+                    const fingerMidZ = (baseJoint.z + tipJoint.z) / 2;
 
-                const direction = new THREE.Vector3(
-                    tipJoint.x - baseJoint.x,
-                    tipJoint.y - baseJoint.y,
-                    tipJoint.z - baseJoint.z
-                ).normalize();
+                    ringMesh.position.set(fingerMidX, fingerMidY, fingerMidZ);
 
-                const defaultOrientation = new THREE.Vector3(0, 0, 1);
-                const quaternion = new THREE.Quaternion().setFromUnitVectors(defaultOrientation, direction);
-                ringMesh.quaternion.copy(quaternion);
+                    const fingerDiameter = Math.sqrt(
+                        Math.pow(tipJoint.x - baseJoint.x, 2) +
+                        Math.pow(tipJoint.y - baseJoint.y, 2) +
+                        Math.pow(tipJoint.z - baseJoint.z, 2)
+                    );
+                    ringMesh.scale.set(fingerDiameter, fingerDiameter, fingerDiameter);
+
+                    const direction = new THREE.Vector3(
+                        tipJoint.x - baseJoint.x,
+                        tipJoint.y - baseJoint.y,
+                        tipJoint.z - baseJoint.z
+                    ).normalize();
+
+                    const defaultOrientation = new THREE.Vector3(0, 0, 1);
+                    const quaternion = new THREE.Quaternion().setFromUnitVectors(defaultOrientation, direction);
+                    ringMesh.quaternion.copy(quaternion);
+                }
             }
-        });
+        }
     </script>
 </body>
 </html>
