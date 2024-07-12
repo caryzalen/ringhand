@@ -3,61 +3,77 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>03</title>
+    <title>Web AR Hand Tracking</title>
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
 </head>
 <body>
-    <a-scene embedded arjs='sourceType: webcam;'>
-        <a-entity camera look-controls></a-entity>
+    <a-scene embedded arjs='sourceType: webcam; debugUIEnabled: false;'>
+        <a-entity camera></a-entity>
     </a-scene>
-
+    <canvas id="outputCanvas" style="position: fixed; top: 0; left: 0;"></canvas>
     <script>
-        const videoElement = document.createElement('video');
-        const hands = new Hands({
-            locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
-        });
-
-        hands.setOptions({
-            maxNumHands: 1,
-            modelComplexity: 1,
-            minDetectionConfidence: 0.5,
-            minTrackingConfidence: 0.5
-        });
-
-        const camera = new Camera(videoElement, {
-            onFrame: async () => {
-                await hands.send({image: videoElement});
-            },
-            width: 1280,
-            height: 720
-        });
-        camera.start();
-
-        hands.onResults(results => {
-            clearPoints();
-
-            if (results.multiHandLandmarks) {
-                for (const landmarks of results.multiHandLandmarks) {
-                    drawLandmarks(landmarks);
-                }
-            }
-        });
-
-        function drawLandmarks(landmarks) {
-            landmarks.forEach(landmark => {
-                const point = document.createElement('a-sphere');
-                point.setAttribute('position', `${landmark.x * 1280} ${landmark.y * 720} 0`);
-                point.setAttribute('color', 'green');
-                point.setAttribute('radius', '1.5');
-                document.querySelector('a-scene').appendChild(point);
+        document.addEventListener('DOMContentLoaded', function() {
+            const videoElement = document.createElement('video');
+            const canvasElement = document.getElementById('outputCanvas');
+            const canvasCtx = canvasElement.getContext('2d');
+            
+            const hands = new Hands({
+                locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
             });
+            
+            hands.setOptions({
+                maxNumHands: 1,
+                modelComplexity: 1,
+                minDetectionConfidence: 0.5,
+                minTrackingConfidence: 0.5
+            });
+            
+            hands.onResults((results) => {
+                canvasCtx.save();
+                canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+                canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+                
+                if (results.multiHandLandmarks) {
+                    for (const landmarks of results.multiHandLandmarks) {
+                        drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, {color: '#00FF00', lineWidth: 5});
+                        drawLandmarks(canvasCtx, landmarks, {color: '#FF0000', lineWidth: 2});
+                    }
+                }
+                canvasCtx.restore();
+            });
+
+            const camera = new Camera(videoElement, {
+                onFrame: async () => {
+                    await hands.send({image: videoElement});
+                },
+                width: 1280,
+                height: 720
+            });
+            camera.start();
+        });
+
+        function drawLandmarks(ctx, landmarks, style = {}) {
+            ctx.fillStyle = style.color || 'red';
+            for (const landmark of landmarks) {
+                ctx.beginPath();
+                ctx.arc(landmark.x * ctx.canvas.width, landmark.y * ctx.canvas.height, style.lineWidth || 5, 0, 2 * Math.PI);
+                ctx.fill();
+            }
         }
 
-        function clearPoints() {
-            const points = document.querySelectorAll('a-sphere');
-            points.forEach(point => point.remove());
+        function drawConnectors(ctx, landmarks, connections, style = {}) {
+            ctx.beginPath();
+            ctx.strokeStyle = style.color || 'green';
+            ctx.lineWidth = style.lineWidth;
+            for (const [startIdx, endIdx] of connections) {
+                const start = landmarks[startIdx];
+                const end = landmarks[endIdx];
+                ctx.moveTo(start.x * ctx.canvas.width, start.y * ctx.canvas.height);
+                ctx.lineTo(end.x * ctx.canvas.width, end.y * ctx.canvas.height);
+            }
+            ctx.stroke();
         }
     </script>
 </body>
