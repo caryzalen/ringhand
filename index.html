@@ -18,30 +18,32 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const scene = document.querySelector('a-scene').object3D; // 获取A-Frame场景的Three.js对象
+            initializeApp();
 
-            loadModel()
-                .then(model => {
-                    scene.add(model); // 将戒指模型添加到场景
-                    initHandTracking();
+            async function initializeApp() {
+                try {
+                    const ringMesh = await loadModel('assets/ring_model.glb');
+                    scene.add(ringMesh);
+                    initHandTracking(ringMesh);
                     document.getElementById('loading').style.display = 'none';
                     document.querySelector('a-scene').style.display = 'block';
-                })
-                .catch(error => {
+                } catch (error) {
                     document.getElementById('loading').textContent = 'Failed to load model: ' + error.message;
-                });
+                }
+            }
 
-            function loadModel() {
+            function loadModel(url) {
                 return new Promise((resolve, reject) => {
                     const loader = new THREE.GLTFLoader();
-                    loader.load('assets/ring_model.glb',
-                        gltf => resolve(gltf.scene), // 成功加载
+                    loader.load(url,
+                        gltf => resolve(gltf.scene),
                         undefined,
-                        error => reject(error) // 加载失败
+                        error => reject(error)
                     );
                 });
             }
 
-            function initHandTracking() {
+            function initHandTracking(ringMesh) {
                 const hands = new Hands({
                     locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
                 });
@@ -66,14 +68,44 @@
                 camera.start();
                 hands.onResults(results => {
                     if (results.multiHandLandmarks) {
-                        updateRingPosition(results.multiHandLandmarks[0], scene.children[scene.children.length - 1]); // Assume the last added mesh is the ring
+                        updateRingPosition(results.multiHandLandmarks[0], ringMesh);
                     }
                 });
             }
 
             function updateRingPosition(handLandmarks, ringMesh) {
-                // Update ring position based on hand landmarks
-                // Similar to previous updateRingPosition function content
+                const baseJointIndex = 9; // 无名指的基部关节
+                const tipJointIndex = 12; // 无名指的尖端关节
+                if (!handLandmarks || handLandmarks.length <= tipJointIndex) {
+                    console.error('Hand landmarks data is insufficient.');
+                    return;
+                }
+
+                const baseJoint = handLandmarks[baseJointIndex];
+                const tipJoint = handLandmarks[tipJointIndex];
+
+                const fingerMidX = (baseJoint.x + tipJoint.x) / 2;
+                const fingerMidY = (baseJoint.y + tipJoint.y) / 2;
+                const fingerMidZ = (baseJoint.z + tipJoint.z) / 2;
+
+                ringMesh.position.set(fingerMidX, fingerMidY, fingerMidZ);
+
+                const fingerDiameter = Math.sqrt(
+                    Math.pow(tipJoint.x - baseJoint.x, 2) +
+                    Math.pow(tipJoint.y - baseJoint.y, 2) +
+                    Math.pow(tipJoint.z - baseJoint.z, 2)
+                );
+                ringMesh.scale.set(fingerDiameter, fingerDiameter, fingerDiameter);
+
+                const direction = new THREE.Vector3(
+                    tipJoint.x - baseJoint.x,
+                    tipJoint.y - baseJoint.y,
+                    tipJoint.z - baseJoint.z
+                ).normalize();
+
+                const defaultOrientation = new THREE.Vector3(0, 0, 1);
+                const quaternion = new THREE.Quaternion().setFromUnitVectors(defaultOrientation, direction);
+                ringMesh.quaternion.copy(quaternion);
             }
         });
     </script>
