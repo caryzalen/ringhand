@@ -1,74 +1,64 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="UTF-8" />
-    <title>01</title>
+<head>
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
-  </head>
-  <body>
-    <a-scene>
-      <a-entity camera></a-entity>
-      <a-entity id="ring" geometry="primitive: ring; radiusOuter: 0.05; radiusInner: 0.03" material="color: red"></a-entity>
+    <script src="https://jeromeetienne.github.io/AR.js/aframe/build/aframe-ar.js"></script>
+</head>
+<body style='margin : 0px; overflow: hidden;'>
+    <a-scene embedded arjs='sourceType: webcam;'>
+        <!-- 3D戒指模型 -->
+        <a-entity id="ring" gltf-model="url(你的戒指模型.glb)" position="0 0 -5" animation-mixer></a-entity>
+        <!-- 使用MediaPipe的手部追踪數據來定位戒指 -->
+        <a-entity camera></a-entity>
     </a-scene>
+
     <script>
-      const videoElement = document.createElement('video');
-      document.body.appendChild(videoElement);
-      videoElement.style.display = 'none';
+        const videoElement = document.createElement('video');
+        const canvasElement = document.createElement('canvas');
+        const canvasCtx = canvasElement.getContext('2d');
 
-      const hands = new Hands({
-        locateFile: (file) => {
-          return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
-        },
-      });
-      hands.setOptions({
-        maxNumHands: 1,
-        modelComplexity: 1,
-        minDetectionConfidence: 0.5,
-        minTrackingConfidence: 0.5,
-      });
+        // MediaPipe Hands model
+        const hands = new Hands({
+            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+        });
 
-      const camera = new Camera(videoElement, {
-        onFrame: async () => {
-          await hands.send({ image: videoElement });
-        },
-        width: 640,
-        height: 480,
-      });
-      camera.start();
+        hands.setOptions({
+            maxNumHands: 1,
+            modelComplexity: 1,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5
+        });
 
-      hands.onResults((results) => {
-        if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-          const landmarks = results.multiHandLandmarks[0];
-          const middleFinger = landmarks.slice(9, 13);
+        // Connect the camera to the video element and start the model
+        const camera = new Camera(videoElement, {
+            onFrame: async () => {
+                await hands.send({image: videoElement});
+            },
+            width: 1280,
+            height: 720
+        });
+        camera.start();
 
-          const ringEntity = document.getElementById('ring');
-          const normalizedLandmark = middleFinger[0];
-          const x = (normalizedLandmark.x - 0.5) * 2;
-          const y = (normalizedLandmark.y - 0.5) * -2;
-          const z = -normalizedLandmark.z * 2;
+        // Listen for model results
+        hands.onResults((results) => {
+            canvasCtx.save();
+            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+            if (results.multiHandLandmarks) {
+                for (const landmarks of results.multiHandLandmarks) {
+                    const middleFingerTip = landmarks[12]; // Index of the middle finger tip
+                    const x = middleFingerTip.x * -2 + 1; // Adjusting scale and orientation
+                    const y = middleFingerTip.y * -2 + 1; // Adjusting scale and orientation
+                    const ringEntity = document.querySelector('#ring');
+                    if (ringEntity) {
+                        ringEntity.object3D.position.set(x, y, -5); // Update the position based on the middle finger
+                    }
+                }
+            }
+            canvasCtx.restore();
+        });
 
-          ringEntity.setAttribute('position', { x, y, z });
-
-          const scene = document.querySelector('a-scene');
-          const existingPoints = scene.querySelectorAll('.point');
-          existingPoints.forEach((point) => point.parentNode.removeChild(point));
-
-          for (let landmark of landmarks) {
-            const point = document.createElement('a-sphere');
-            point.setAttribute('radius', '0.01');
-            point.setAttribute('color', 'green');
-            point.setAttribute('class', 'point');
-            const px = (landmark.x - 0.5) * 2;
-            const py = (landmark.y - 0.5) * -2;
-            const pz = -landmark.z * 2;
-            point.setAttribute('position', { x: px, y: py, z: pz });
-            scene.appendChild(point);
-          }
-        }
-      });
     </script>
-  </body>
+</body>
 </html>
