@@ -1,62 +1,57 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>03</title>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AR Ring Try-On</title>
+    <script src="https://apps.8thwall.com/xrweb?appKey=YOUR_8TH_WALL_APP_KEY"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
-<body>
-    <video id="video" width="320" height="240" autoplay muted></video>
-    <canvas id="canvas" width="320" height="240"></canvas>
-
+<body style="margin:0; overflow:hidden;">
+    <canvas id="camerafeed"></canvas>
     <script>
-        const videoElement = document.getElementById('video');
-        const canvasElement = document.getElementById('canvas');
-        const canvasCtx = canvasElement.getContext('2d');
+        // 初始化XR，設置三維場景
+        XR.addCameraPipelineModule(XR.Threejs.pipelineModule()); // 使用Three.js作為渲染器
+        XR.addCameraPipelineModule(XR.XrController.pipelineModule()); // 控制AR功能
 
-        function onResults(results) {
-            canvasCtx.save();
-            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-            canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
-            if (results.multiHandLandmarks) {
-                for (const landmarks of results.multiHandLandmarks) {
-                    drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, {color: '#00FF00', lineWidth: 5});
-                    drawLandmarks(canvasCtx, landmarks, {color: '#FF0000', lineWidth: 2});
-                }
-            }
-            canvasCtx.restore();
-        }
+        // 定義一個變量來存儲3D戒指模型
+        let ringMesh;
 
-        const hands = new Hands({
-            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
-        });
+        window.onload = () => {
+            XR.run({canvas: document.getElementById('camerafeed')});
 
-        hands.setOptions({
-            maxNumHands: 1,
-            modelComplexity: 0,
-            minDetectionConfidence: 0.5,
-            minTrackingConfidence: 0.5
-        });
-
-        navigator.mediaDevices.getUserMedia({ video: { width: 320, height: 240 } })
-            .then(function(stream) {
-                videoElement.srcObject = stream;
-                videoElement.onloadedmetadata = function(e) {
-                    videoElement.play();
-                };
-
-                hands.onResults(onResults);
-
-                function onFrame() {
-                    hands.send({ image: videoElement }).then(() => {
-                        requestAnimationFrame(onFrame);
-                    });
-                }
-                requestAnimationFrame(onFrame);
-            })
-            .catch(function(err) {
-                console.error("Error accessing media devices.", err);
+            // 加載戒指模型
+            const loader = new THREE.GLTFLoader();
+            loader.load('path_to_your_ring_model.glb', function(gltf) {
+                ringMesh = gltf.scene;
+                XR.Threejs.xrScene().scene.add(ringMesh);
+                ringMesh.visible = false; // 初始時不顯示戒指
             });
+
+            // 設定當手部被檢測到時的行為
+            XR.XrController.updateCameraProjectionMatrix({
+                origin: window.camera.position,
+                facing: XR.XrConfig.facingMode().environment,
+            });
+
+            XR.XrController.handSegmentationWorker().then(worker => {
+                worker.onhandsegmentation = (hands) => {
+                    if (hands.length > 0) {
+                        const hand = hands[0]; // 取第一隻手
+                        const indexFinger = hand.joints['index-finger-tip']; // 獲取食指尖的位置
+
+                        if (ringMesh) {
+                            ringMesh.position.set(indexFinger.x, indexFinger.y, indexFinger.z);
+                            ringMesh.visible = true;
+                        }
+                    } else {
+                        if (ringMesh) {
+                            ringMesh.visible = false; // 如果沒有檢測到手，隱藏戒指
+                        }
+                    }
+                };
+            });
+        };
     </script>
 </body>
 </html>
