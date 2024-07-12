@@ -1,25 +1,44 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Web AR Ring Try-On</title>
+    <meta charset="UTF-8">
+    <title>MediaPipe Hands Example</title>
+    <!-- 引入 TensorFlow.js 库 -->
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <!-- 引入 MediaPipe Hands 库 -->
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
+    <!-- 引入 Three.js 库 -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.135.0/build/three.min.js"></script>
 </head>
 <body>
     <script>
-        // 现在可以使用全局变量 Hands, Camera 等
-        const hands = new Hands({ /* options */ });
-        const camera = new Camera(videoElement, {
-            onFrame: async () => {
-                await hands.send({image: videoElement});
-            },
-            width: 1280,
-            height: 720
-        });
+        // 定义全局变量，以便于在页面其他部分使用
+        let camera;
 
-        // 你的其他代码
+        // 确保所有依赖完全加载
+        window.onload = function () {
+            // 检查 MediaPipe Hands 和 Camera 是否可用
+            if (typeof hands !== 'undefined' && typeof CameraUtils !== 'undefined') {
+                console.log("MediaPipe Hands and CameraUtils are loaded");
+
+                // 配置 MediaPipe Hands
+                const hands = new mpHands.Hands({
+                    locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+                });
+
+                // 配置摄像头
+                camera = new CameraUtils.Camera(videoElement, {
+                    onFrame: async () => {
+                        await hands.send({image: videoElement});
+                    },
+                    width: 1280,
+                    height: 720
+                });
+                camera.start();
+            } else {
+                console.error("MediaPipe Hands or CameraUtils not loaded properly.");
+            }
+        };
     </script>
 </body>
 </html>
