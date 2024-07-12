@@ -2,52 +2,65 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>MediaPipe Hands Example</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>  <!-- TensorFlow.js -->
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands"></script> <!-- MediaPipe Hands -->
-    <script src="https://cdn.jsdelivr.net/npm/three@0.135.0/build/three.min.js"></script> <!-- Three.js -->
+    <title>MediaPipe Hands Tracking</title>
+    <!-- TensorFlow.js -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <!-- MediaPipe Hands -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands"></script>
+    <!-- Additional MediaPipe CameraUtils -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
+    <!-- Three.js for any 3D rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.135.0/build/three.min.js"></script>
 </head>
 <body>
-    <video id="videoElement" style="display:none;"></video> <!-- 隐藏的视频元素 -->
-    <canvas id="canvasElement"></canvas> <!-- 用于绘制输出的画布 -->
-    <script type="text/javascript">
-        const videoElement = document.getElementById('videoElement');
-        const canvasElement = document.getElementById('canvasElement');
-        const canvasCtx = canvasElement.getContext('2d');
+    <video id="videoElement" playsinline style="display:none;"></video>
+    <canvas id="canvasElement"></canvas>
+    <script>
+        // Ensure all scripts are loaded before accessing objects
+        window.onload = function () {
+            const videoElement = document.getElementById('videoElement');
+            const canvasElement = document.getElementById('canvasElement');
+            const canvasCtx = canvasElement.getContext('2d');
 
-        function onResults(results) {
-            canvasCtx.save();
-            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-            canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
-            if (results.multiHandLandmarks) {
-                for (const landmarks of results.multiHandLandmarks) {
-                    drawConnectors(canvasCtx, landmarks, mpHands.HAND_CONNECTIONS, {color: '#00FF00', lineWidth: 5});
-                    drawLandmarks(canvasCtx, landmarks, {color: '#FF0000', lineWidth: 2});
+            const hands = new Hands({
+                locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+            });
+
+            hands.setOptions({
+                maxNumHands: 2,
+                modelComplexity: 1,
+                minDetectionConfidence: 0.5,
+                minTrackingConfidence: 0.5
+            });
+
+            // Set up the camera
+            const camera = new Camera(videoElement, {
+                onFrame: async () => {
+                    await hands.send({image: videoElement});
+                },
+                width: 1280,
+                height: 720
+            });
+            camera.start();
+
+            // Draw the results
+            hands.onResults((results) => {
+                canvasCtx.save();
+                canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+                canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+                if (results.multiHandLandmarks) {
+                    for (const landmarks of results.multiHandLandmarks) {
+                        drawConnectors(canvasCtx, landmarks, Hands.HAND_CONNECTIONS,
+                                       {color: '#00FF00', lineWidth: 5});
+                        drawLandmarks(canvasCtx, landmarks,
+                                      {color: '#FF0000', lineWidth: 2});
+                    }
                 }
-            }
-            canvasCtx.restore();
-        }
-
-        const hands = new mpHands.Hands({
-            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
-        });
-        hands.setOptions({
-            maxNumHands: 2,
-            modelComplexity: 1,
-            minDetectionConfidence: 0.5,
-            minTrackingConfidence: 0.5
-        });
-        hands.onResults(onResults);
-
-        const camera = new Camera(videoElement, {
-            onFrame: async () => {
-                await hands.send({image: videoElement});
-            },
-            width: 1280,
-            height: 720
-        });
-        camera.start();
+                canvasCtx.restore();
+            });
+        };
     </script>
 </body>
 </html>
+
 
