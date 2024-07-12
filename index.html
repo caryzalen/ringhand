@@ -9,6 +9,7 @@
   </head>
   <body style="margin: 0; overflow: hidden;">
     <a-scene vr-mode-ui="enabled: false;" arjs="sourceType: webcam;">
+      <!-- A-Frame entities for displaying hand keypoints -->
       <a-entity id="hand-points"></a-entity>
       <a-entity camera></a-entity>
     </a-scene>
@@ -16,13 +17,16 @@
     <script>
       const videoElement = document.getElementById('input-video');
       
+      // 确保摄像头权限和视频流正常工作
       navigator.mediaDevices.getUserMedia({video: true})
         .then(stream => {
           videoElement.srcObject = stream;
           videoElement.play();
+          console.log('Camera stream started'); // Debug log
         })
         .catch(err => console.error('Error accessing camera:', err));
       
+      // 初始化 MediaPipe Hands
       const hands = new Hands({
         locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
       });
@@ -34,19 +38,20 @@
         minTrackingConfidence: 0.5
       });
 
+      // 当检测到手部关键点时触发
       hands.onResults(results => {
         console.log('Hand tracking results:', results); // Debug log
 
         const handPointsEntity = document.querySelector('#hand-points');
-        handPointsEntity.innerHTML = ''; // Clear previous points
+        handPointsEntity.innerHTML = ''; // 清除之前的点
 
         if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
           const handLandmarks = results.multiHandLandmarks[0];
 
           handLandmarks.forEach((landmark, index) => {
-            const x = landmark.x * 2 - 1;  // Normalize to A-Frame coordinates
-            const y = -(landmark.y * 2 - 1);  // Normalize to A-Frame coordinates
-            const z = -landmark.z;  // Depth
+            const x = landmark.x * 2 - 1;  // 归一化到A-Frame坐标系
+            const y = -(landmark.y * 2 - 1);  // 归一化到A-Frame坐标系
+            const z = -landmark.z;  // 深度
 
             console.log(`Point ${index}: x=${x}, y=${y}, z=${z}`); // Debug log
 
@@ -61,7 +66,9 @@
         }
       });
 
+      // 当视频数据加载时启动摄像头
       videoElement.onloadeddata = (event) => {
+        console.log('Video loaded'); // Debug log
         const camera = new Camera(videoElement, {
           onFrame: async () => {
             await hands.send({image: videoElement});
