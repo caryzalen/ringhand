@@ -3,14 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web AR Hand Tracking</title>
+    <title>001</title>
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
 </head>
 <body>
     <a-scene embedded arjs='sourceType: webcam; debugUIEnabled: false;'>
+        <a-assets>
+            <a-asset-item id="ring-model" src="path_to_your_ring_model.glb"></a-asset-item>
+        </a-assets>
         <a-entity camera></a-entity>
+        <a-entity id="ring" gltf-model="#ring-model" position="0 0 0" scale="0.01 0.01 0.01"></a-entity>
     </a-scene>
     <canvas id="outputCanvas" style="position: fixed; top: 0; left: 0;"></canvas>
     <script>
@@ -39,6 +43,11 @@
                     for (const landmarks of results.multiHandLandmarks) {
                         drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, {color: '#00FF00', lineWidth: 5});
                         drawLandmarks(canvasCtx, landmarks, {color: '#FF0000', lineWidth: 2});
+                        
+                        // Update the ring position
+                        const middleFingerTip = landmarks[12]; // Assuming landmark 12 is the tip of the middle finger
+                        const ring = document.getElementById('ring');
+                        ring.setAttribute('position', `${middleFingerTip.x * canvasElement.width} ${middleFingerTip.y * canvasElement.height} 0`);
                     }
                 }
                 canvasCtx.restore();
