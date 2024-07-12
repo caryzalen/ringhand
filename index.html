@@ -1,96 +1,51 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>MediaPipe Hands Tracking</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        body, html {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background: #000;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        #videoElement, #canvasElement {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover; /* Ensures the video covers the entire screen */
-        }
-    </style>
-    <!-- TensorFlow.js for ML computations -->
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-    <!-- MediaPipe Hands for hand tracking -->
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands"></script>
-    <!-- MediaPipe Camera Utils for video handling -->
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
-</head>
-<body>
-    <video id="videoElement" playsinline autoplay muted></video>
-    <canvas id="canvasElement"></canvas>
-    <script>
-        const videoElement = document.getElementById('videoElement');
-        const canvasElement = document.getElementById('canvasElement');
-        const ctx = canvasElement.getContext('2d');
+<!doctype html>
+<html>
+    <head>
+        <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
+        <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+        <script src="https://raw.githack.com/donmccurdy/aframe-extras/master/dist/aframe-extras.loaders.min.js"></script>
+        <script src="https://raw.githack.com/AR-js-org/studio-backend/master/src/modules/marker/tools/gesture-detector.js"></script>
+        <script src="https://raw.githack.com/AR-js-org/studio-backend/master/src/modules/marker/tools/gesture-handler.js"></script>
+    </head>
 
-        function onResults(results) {
-            ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-            ctx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
-            if (results.multiHandLandmarks) {
-                for (const landmarks of results.multiHandLandmarks) {
-                    drawConnectors(ctx, landmarks, Hands.HAND_CONNECTIONS, {color: '#00FF00', lineWidth: 5});
-                    drawLandmarks(ctx, landmarks, {color: '#FF0000', lineWidth: 2});
-                }
-            }
-        }
+    <body style="margin: 0; overflow: hidden;">
+        <a-scene
+            vr-mode-ui="enabled: false;"
+            loading-screen="enabled: false;"
+            renderer="logarithmicDepthBuffer: true;"
+            arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false;"
+            id="scene"
+            embedded
+            gesture-detector
+        >
+            <a-assets>
+                <a-asset-item
+                    id="animated-asset"
+                    src="assets/asset.glb"
+                ></a-asset-item>
+            </a-assets>
 
-        const hands = new Hands({
-            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
-        });
+            <a-marker
+                id="animated-marker"
+                type="pattern"
+                preset="custom"
+                url="assets/marker.patt"
+                raycaster="objects: .clickable"
+                emitevents="true"
+                cursor="fuse: false; rayOrigin: mouse;"
+                id="markerA"
+            >
+                <a-entity
+                    id="bowser-model"
+                    scale="0.08675078655565938 0.08675078655565938 0.08675078655565938"
+                    animation-mixer="loop: repeat"
+                    gltf-model="#animated-asset"
+                    class="clickable"
+                    gesture-handler
+                ></a-entity>
+            </a-marker>
 
-        hands.setOptions({
-            maxNumHands: 2,
-            modelComplexity: 1,
-            minDetectionConfidence: 0.5,
-            minTrackingConfidence: 0.5
-        });
-
-        hands.onResults(onResults);
-
-        navigator.mediaDevices.getUserMedia({
-            video: { facingMode: { exact: "environment" } }
-        }).then(stream => {
-            videoElement.srcObject = stream;
-            videoElement.onloadedmetadata = () => {
-                videoElement.play();
-                const camera = new Camera(videoElement, {
-                    onFrame: async () => {
-                        await hands.send({image: videoElement});
-                    },
-                    width: window.innerWidth,
-                    height: window.innerHeight
-                });
-                camera.start();
-            };
-        }).catch(error => {
-            console.error('Camera access failed:', error);
-        });
-
-        window.addEventListener('resize', () => {
-            canvasElement.width = window.innerWidth;
-            canvasElement.height = window.innerHeight;
-        });
-
-        // Initialize canvas size
-        canvasElement.width = window.innerWidth;
-        canvasElement.height = window.innerHeight;
-    </script>
-</body>
+            <a-entity camera></a-entity>
+        </a-scene>
+    </body>
 </html>
