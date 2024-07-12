@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>MediaPipe Hands Tracking</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         body, html {
             margin: 0;
@@ -17,7 +18,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            object-fit: cover; /* This will cover the entire window, maintaining aspect ratio */
+            object-fit: cover; /* Ensures video covers the screen while maintaining the aspect ratio */
             z-index: -1; /* Keep the video behind other content */
         }
         canvas {
@@ -26,9 +27,12 @@
             top: 0;
         }
     </style>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script> <!-- TensorFlow.js -->
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands"></script> <!-- MediaPipe Hands -->
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script> <!-- MediaPipe Camera Utils -->
+    <!-- TensorFlow.js for ML computations -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <!-- MediaPipe Hands for hand tracking -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands"></script>
+    <!-- MediaPipe Camera Utils for video handling -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
 </head>
 <body>
     <video id="videoElement" playsinline autoplay muted></video> <!-- Muted to allow autoplay without interaction -->
@@ -38,9 +42,12 @@
             const videoElement = document.getElementById('videoElement');
             const canvasElement = document.getElementById('canvasElement');
             const ctx = canvasElement.getContext('2d');
+
+            // Set the canvas size to the window size
             canvasElement.width = window.innerWidth;
             canvasElement.height = window.innerHeight;
 
+            // MediaPipe Hands initialization
             const hands = new Hands({
                 locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
             });
@@ -52,15 +59,17 @@
                 minTrackingConfidence: 0.5
             });
 
+            // Camera setup
             const camera = new Camera(videoElement, {
                 onFrame: async () => {
                     await hands.send({image: videoElement});
                 },
-                width: 1280,
-                height: 720
+                width: window.innerWidth,
+                height: window.innerHeight
             });
             camera.start();
 
+            // Drawing the results
             hands.onResults((results) => {
                 ctx.save();
                 ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
@@ -74,10 +83,12 @@
                 ctx.restore();
             });
 
-            // Resize canvas on resize window
+            // Adjust canvas and camera settings on window resize
             window.addEventListener('resize', () => {
                 canvasElement.width = window.innerWidth;
                 canvasElement.height = window.innerHeight;
+                camera.reset();
+                camera.start();
             });
         };
     </script>
