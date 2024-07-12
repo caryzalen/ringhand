@@ -15,6 +15,7 @@
       </a-assets>
       <a-entity id="ring" gltf-model="#ring-model" scale="0.01 0.01 0.01" position="0 0 0"></a-entity>
       <a-entity camera></a-entity>
+      <a-entity id="hand-points"></a-entity>
     </a-scene>
     <script>
       const videoElement = document.createElement('video');
@@ -38,19 +39,38 @@
       camera.start();
 
       function onResults(results) {
+        const handPointsEntity = document.querySelector('#hand-points');
+        handPointsEntity.innerHTML = ''; // Clear previous points
+
         if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-          const ringEntity = document.querySelector('#ring');
           const handLandmarks = results.multiHandLandmarks[0];
+
+          handLandmarks.forEach((point, index) => {
+            const x = point.x * 2 - 1;  // Normalize to A-Frame coordinates
+            const y = -(point.y * 2 - 1);  // Normalize to A-Frame coordinates
+            const z = -point.z;  // Depth
+
+            const pointEntity = document.createElement('a-sphere');
+            pointEntity.setAttribute('position', {x, y, z});
+            pointEntity.setAttribute('radius', 0.02);
+            pointEntity.setAttribute('color', 'blue');
+            pointEntity.setAttribute('id', `point-${index}`);
+
+            handPointsEntity.appendChild(pointEntity);
+          });
+
+          // Get specific points for the ring positioning
           const fingerTip = handLandmarks[8];  // Index finger tip
           const fingerBase = handLandmarks[5]; // Index finger base
 
           // Calculate position
-          const x = fingerTip.x * 2 - 1;  // Normalize to A-Frame coordinates
-          const y = -(fingerTip.y * 2 - 1);  // Normalize to A-Frame coordinates
-          const z = -fingerTip.z;  // Depth
+          const ringX = fingerTip.x * 2 - 1;  // Normalize to A-Frame coordinates
+          const ringY = -(fingerTip.y * 2 - 1);  // Normalize to A-Frame coordinates
+          const ringZ = -fingerTip.z;  // Depth
 
           // Set position
-          ringEntity.setAttribute('position', {x, y, z});
+          const ringEntity = document.querySelector('#ring');
+          ringEntity.setAttribute('position', {x: ringX, y: ringY, z: ringZ});
 
           // Calculate rotation
           const dx = fingerTip.x - fingerBase.x;
