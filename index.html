@@ -13,6 +13,7 @@
         const canvasElement = document.getElementById('canvas');
         const canvasCtx = canvasElement.getContext('2d');
 
+        // Define the onResults function to handle results
         function onResults(results) {
             canvasCtx.save();
             canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
@@ -26,23 +27,41 @@
             canvasCtx.restore();
         }
 
-        const hands = new Hands({locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`});
+        // Initialize the Hands component
+        const hands = new Hands({
+            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+        });
+
+        // Set options for the Hands component
         hands.setOptions({
             maxNumHands: 1,
             modelComplexity: 1,
             minDetectionConfidence: 0.5,
             minTrackingConfidence: 0.5
         });
-        hands.onResults(onResults);
 
-        const camera = new Camera(videoElement, {
-            onFrame: async () => {
-                await hands.send({image: videoElement});
-            },
-            width: 640,
-            height: 480
-        });
-        camera.start();
+        // Connect the camera stream to the hands component
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(function(stream) {
+                videoElement.srcObject = stream;
+                videoElement.onloadedmetadata = function(e) {
+                    videoElement.play();
+                };
+
+                // Set up the onResults handler
+                hands.onResults(onResults);
+
+                // Create an animation loop to continuously feed frames
+                function onFrame() {
+                    hands.send({ image: videoElement }).then(() => {
+                        requestAnimationFrame(onFrame);
+                    });
+                }
+                requestAnimationFrame(onFrame);
+            })
+            .catch(function(err) {
+                console.error("Error accessing media devices.", err);
+            });
     </script>
 </body>
 </html>
