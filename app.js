@@ -27,7 +27,7 @@ scene.add(camera);
 // 加载3D模型
 const loader = new THREE.GLTFLoader();
 let ringMesh;
-loader.load('path_to_3D_ring_model.glb', function (gltf) {
+loader.load('ring.glb', function (gltf) {
     ringMesh = gltf.scene;
     scene.add(ringMesh);
     ringMesh.position.set(0, 0, 0); // 初始位置
