@@ -1,78 +1,77 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="utf-8">
-    <title>Hand4</title>
-    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
-  </head>
-  <body>
-    <a-scene>
-      <a-entity camera></a-entity>
-      <a-entity id="hand-points"></a-entity>
-    </a-scene>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="script-src 'self';">
+  <title>Hand Tracking with Mediapipe and A-Frame</title>
+  <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+</head>
+<body>
+  <a-scene>
+    <a-entity camera></a-entity>
+    <a-entity id="hand-points"></a-entity>
+  </a-scene>
 
-    <script>
-      const hands = new Hands({
-        locateFile: (file) => {
-          return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
-        }
-      });
+  <script>
+    // Initialize Mediapipe Hands
+    const hands = new Hands({
+      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+    });
 
-      hands.setOptions({
-        maxNumHands: 1,
-        modelComplexity: 1,
-        minDetectionConfidence: 0.5,
-        minTrackingConfidence: 0.5
-      });
+    hands.setOptions({
+      maxNumHands: 1,
+      modelComplexity: 1,
+      minDetectionConfidence: 0.5,
+      minTrackingConfidence: 0.5
+    });
 
-      hands.onResults(onResults);
+    hands.onResults(onResults);
 
-      const videoElement = document.createElement('video');
-      const camera = new Camera(videoElement, {
-        onFrame: async () => {
-          await hands.send({image: videoElement});
-        },
-        width: 640,
-        height: 480
-      });
-      camera.start();
+    // Initialize Camera
+    const videoElement = document.createElement('video');
+    const camera = new Camera(videoElement, {
+      onFrame: async () => {
+        await hands.send({image: videoElement});
+      },
+      width: 640,
+      height: 480
+    });
+    camera.start();
 
-      function onResults(results) {
-        const handPointsEntity = document.getElementById('hand-points');
-        handPointsEntity.innerHTML = ''; // 清空之前的點
+    // Process Results
+    function onResults(results) {
+      const handPointsEntity = document.getElementById('hand-points');
+      handPointsEntity.innerHTML = ''; // Clear previous points
 
-        if (results.multiHandLandmarks) {
-          for (const landmarks of results.multiHandLandmarks) {
-            let ringPosition = null;
-            landmarks.forEach((landmark, index) => {
-              const x = (landmark.x - 0.5) * 2;
-              const y = (landmark.y - 0.5) * -2;
-              const z = landmark.z * -1;
+      if (results.multiHandLandmarks) {
+        results.multiHandLandmarks.forEach((landmarks) => {
+          landmarks.forEach((landmark, index) => {
+            const x = (landmark.x - 0.5) * 2;
+            const y = (landmark.y - 0.5) * -2;
+            const z = landmark.z * -1;
 
-              if (index === 5) { // 食指指根
-                ringPosition = `${x} ${y} ${z}`;
-              }
+            // Create a point for each landmark
+            const point = document.createElement('a-sphere');
+            point.setAttribute('position', `${x} ${y} ${z}`);
+            point.setAttribute('radius', '0.01');
+            point.setAttribute('color', 'red');
+            handPointsEntity.appendChild(point);
 
-              const point = document.createElement('a-sphere');
-              point.setAttribute('position', `${x} ${y} ${z}`);
-              point.setAttribute('radius', '0.01');
-              point.setAttribute('color', 'red');
-              handPointsEntity.appendChild(point);
-            });
-
-            if (ringPosition) {
+            // Place ring on index finger base (landmark 5)
+            if (index === 5) {
               const ring = document.createElement('a-ring');
-              ring.setAttribute('position', ringPosition);
+              ring.setAttribute('position', `${x} ${y} ${z}`);
               ring.setAttribute('radius-inner', '0.015');
               ring.setAttribute('radius-outer', '0.02');
               ring.setAttribute('color', 'gold');
               handPointsEntity.appendChild(ring);
             }
-          }
-        }
+          });
+        });
       }
-    </script>
-  </body>
+    }
+  </script>
+</body>
 </html>
