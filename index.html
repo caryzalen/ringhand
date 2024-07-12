@@ -3,56 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>008</title>
+    <title>Web AR Hand Tracking</title>
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
 </head>
 <body>
     <a-scene embedded arjs='sourceType: webcam; debugUIEnabled: false;'>
-        <a-assets>
-            <a-asset-item id="ring-model" src="assets/ring.glb"></a-asset-item>
-        </a-assets>
         <a-entity camera></a-entity>
-        <a-entity id="ring" gltf-model="#ring-model" position="0 0 -1" scale="0.02 0.02 0.02"></a-entity>
     </a-scene>
-    <canvas id="outputCanvas" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1;"></canvas>
-    <video id="inputVideo" style="display: none;"></video>
+    <canvas id="outputCanvas" style="position: fixed; top: 0; left: 0;"></canvas>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const videoElement = document.getElementById('inputVideo');
+            const videoElement = document.createElement('video');
             const canvasElement = document.getElementById('outputCanvas');
             const canvasCtx = canvasElement.getContext('2d');
-            canvasElement.width = window.innerWidth;
-            canvasElement.height = window.innerHeight;
-
+            
             const hands = new Hands({
-                locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+                locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
             });
-
+            
             hands.setOptions({
                 maxNumHands: 1,
                 modelComplexity: 1,
                 minDetectionConfidence: 0.5,
                 minTrackingConfidence: 0.5
             });
-
-            hands.onResults(results => {
+            
+            hands.onResults((results) => {
                 canvasCtx.save();
                 canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
                 canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
-
+                
                 if (results.multiHandLandmarks) {
                     for (const landmarks of results.multiHandLandmarks) {
-                        const middleFingerTip = landmarks[12]; // Assuming landmark 12 is the tip of the middle finger
-                        
-                        // 计算在A-Frame中的位置
-                        const x = (middleFingerTip.x - 0.5) * 2; // 从0-1范围转换到-1到1
-                        const y = (middleFingerTip.y - 0.5) * -2; // 从0-1范围转换到-1到1，并反转y轴
-                        const z = -1; // 根据实际情况调整Z坐标
-
-                        const ring = document.getElementById('ring');
-                        ring.setAttribute('position', `${x} ${y} ${z}`);
+                        drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, {color: '#00FF00', lineWidth: 5});
+                        drawLandmarks(canvasCtx, landmarks, {color: '#FF0000', lineWidth: 2});
                     }
                 }
                 canvasCtx.restore();
