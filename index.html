@@ -5,18 +5,28 @@
     <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
   </head>
   <body style="margin: 0; overflow: hidden;">
     <a-scene vr-mode-ui="enabled: false;" arjs="sourceType: webcam;">
-      <!-- A-Frame entities for displaying hand keypoints -->
       <a-entity id="hand-points"></a-entity>
       <a-entity camera></a-entity>
     </a-scene>
+    <video id="input-video" style="display:none;"></video>
     <script>
-      const videoElement = document.createElement('video');
-      const hands = new Hands({locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`});
+      const videoElement = document.getElementById('input-video');
+      
+      navigator.mediaDevices.getUserMedia({video: true})
+        .then(stream => {
+          videoElement.srcObject = stream;
+          videoElement.play();
+        })
+        .catch(err => console.error('Error accessing camera:', err));
+      
+      const hands = new Hands({
+        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+      });
+
       hands.setOptions({
         maxNumHands: 1,
         modelComplexity: 1,
@@ -24,18 +34,7 @@
         minTrackingConfidence: 0.5
       });
 
-      hands.onResults(onResults);
-
-      const camera = new Camera(videoElement, {
-        onFrame: async () => {
-          await hands.send({image: videoElement});
-        },
-        width: 640,
-        height: 480
-      });
-      camera.start();
-
-      function onResults(results) {
+      hands.onResults(results => {
         console.log('Hand tracking results:', results); // Debug log
 
         const handPointsEntity = document.querySelector('#hand-points');
@@ -60,11 +59,18 @@
             handPointsEntity.appendChild(point);
           });
         }
-      }
-
-      videoElement.addEventListener('loadeddata', (event) => {
-        console.log('Video loaded');
       });
+
+      videoElement.onloadeddata = (event) => {
+        const camera = new Camera(videoElement, {
+          onFrame: async () => {
+            await hands.send({image: videoElement});
+          },
+          width: 640,
+          height: 480
+        });
+        camera.start();
+      };
     </script>
   </body>
 </html>
