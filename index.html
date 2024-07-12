@@ -1,83 +1,81 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <title>AR Hand Tracking</title>
-    <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
-  </head>
-  <body style="margin: 0; overflow: hidden;">
-    <a-scene vr-mode-ui="enabled: false;" arjs="sourceType: webcam;">
-      <!-- A-Frame entities for displaying hand keypoints -->
-      <a-entity id="hand-points"></a-entity>
-      <a-entity camera></a-entity>
-    </a-scene>
-    <video id="input-video" style="display:none;"></video>
-    <script>
-      const videoElement = document.getElementById('input-video');
-      
-      // 确保摄像头权限和视频流正常工作
-      navigator.mediaDevices.getUserMedia({video: true})
-        .then(stream => {
-          videoElement.srcObject = stream;
-          videoElement.play();
-          console.log('Camera stream started'); // Debug log
-        })
-        .catch(err => console.error('Error accessing camera:', err));
-      
-      // 初始化 MediaPipe Hands
-      const hands = new Hands({
-        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
-      });
+<head>
+  <title>AR Hand Tracking</title>
+  <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
+  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+</head>
+<body style="margin: 0; overflow: hidden;">
+  <a-scene vr-mode-ui="enabled: false;" arjs="sourceType: webcam;">
+    <!-- A-Frame entities for displaying hand keypoints -->
+    <a-entity id="hand-points"></a-entity>
+    <a-entity camera></a-entity>
+  </a-scene>
+  <video id="input-video" style="display:none;"></video>
+  <script>
+    // 获取视频流并检查摄像头权限
+    const videoElement = document.getElementById('input-video');
+    navigator.mediaDevices.getUserMedia({video: true})
+      .then(stream => {
+        videoElement.srcObject = stream;
+        videoElement.play();
+        console.log('Camera stream started'); // Debug log
+      })
+      .catch(err => console.error('Error accessing camera:', err));
 
-      hands.setOptions({
-        maxNumHands: 1,
-        modelComplexity: 1,
-        minDetectionConfidence: 0.5,
-        minTrackingConfidence: 0.5
-      });
+    // 初始化 MediaPipe Hands
+    const hands = new Hands({
+      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+    });
 
-      // 当检测到手部关键点时触发
-      hands.onResults(results => {
-        console.log('Hand tracking results:', results); // Debug log
+    hands.setOptions({
+      maxNumHands: 1,
+      modelComplexity: 1,
+      minDetectionConfidence: 0.5,
+      minTrackingConfidence: 0.5
+    });
 
-        const handPointsEntity = document.querySelector('#hand-points');
-        handPointsEntity.innerHTML = ''; // 清除之前的点
+    hands.onResults(results => {
+      console.log('Hand tracking results:', results); // Debug log
 
-        if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-          const handLandmarks = results.multiHandLandmarks[0];
+      const handPointsEntity = document.querySelector('#hand-points');
+      handPointsEntity.innerHTML = ''; // 清除之前的点
 
-          handLandmarks.forEach((landmark, index) => {
-            const x = landmark.x * 2 - 1;  // 归一化到A-Frame坐标系
-            const y = -(landmark.y * 2 - 1);  // 归一化到A-Frame坐标系
-            const z = -landmark.z;  // 深度
+      if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+        const handLandmarks = results.multiHandLandmarks[0];
 
-            console.log(`Point ${index}: x=${x}, y=${y}, z=${z}`); // Debug log
+        handLandmarks.forEach((landmark, index) => {
+          const x = landmark.x * 2 - 1;  // 归一化到A-Frame坐标系
+          const y = -(landmark.y * 2 - 1);  // 归一化到A-Frame坐标系
+          const z = -landmark.z;  // 深度
 
-            const point = document.createElement('a-sphere');
-            point.setAttribute('position', {x, y, z});
-            point.setAttribute('radius', 0.02);
-            point.setAttribute('color', 'blue');
-            point.setAttribute('id', `point-${index}`);
+          console.log(`Point ${index}: x=${x}, y=${y}, z=${z}`); // Debug log
 
-            handPointsEntity.appendChild(point);
-          });
-        }
-      });
+          const point = document.createElement('a-sphere');
+          point.setAttribute('position', {x, y, z});
+          point.setAttribute('radius', 0.02);
+          point.setAttribute('color', 'blue');
+          point.setAttribute('id', `point-${index}`);
 
-      // 当视频数据加载时启动摄像头
-      videoElement.onloadeddata = (event) => {
-        console.log('Video loaded'); // Debug log
-        const camera = new Camera(videoElement, {
-          onFrame: async () => {
-            await hands.send({image: videoElement});
-          },
-          width: 640,
-          height: 480
+          handPointsEntity.appendChild(point);
         });
-        camera.start();
-      };
-    </script>
-  </body>
+      }
+    });
+
+    // 确保视频数据加载后启动 MediaPipe Hands
+    videoElement.onloadeddata = (event) => {
+      console.log('Video loaded'); // Debug log
+      const camera = new Camera(videoElement, {
+        onFrame: async () => {
+          await hands.send({image: videoElement});
+        },
+        width: 640,
+        height: 480
+      });
+      camera.start();
+    };
+  </script>
+</body>
 </html>
