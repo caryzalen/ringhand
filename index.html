@@ -1,60 +1,72 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="UTF-8">
-    <title>Web AR Hand Tracking</title>
-    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
-  </head>
-  <body>
-    <a-scene>
-      <a-entity camera></a-entity>
-      <a-sphere id="ring" color="gold" radius="0.01"></a-sphere>
-    </a-scene>
-    <video id="input_video" style="display:none;"></video>
-    <script>
-      // 初始化Mediapipe
-      const videoElement = document.getElementById('input_video');
-      const hands = new Hands({
-        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`,
-      });
+<head>
+  <title>02</title>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+  <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+</head>
+<body>
+  <a-scene>
+    <a-entity camera></a-entity>
+    <a-entity id="hand-points"></a-entity>
+  </a-scene>
+  
+  <video id="input-video" style="display:none;"></video>
+  <canvas id="output-canvas"></canvas>
+
+  <script>
+    const videoElement = document.getElementById('input-video');
+    const canvasElement = document.getElementById('output-canvas');
+    const canvasCtx = canvasElement.getContext('2d');
+
+    const hands = new Hands({
+      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`,
+    });
+
+    hands.setOptions({
+      maxNumHands: 1,
+      modelComplexity: 1,
+      minDetectionConfidence: 0.5,
+      minTrackingConfidence: 0.5,
+    });
+
+    hands.onResults(onResults);
+
+    const camera = new Camera(videoElement, {
+      onFrame: async () => {
+        await hands.send({image: videoElement});
+      },
+      width: 1280,
+      height: 720
+    });
+    camera.start();
+
+    function onResults(results) {
+      canvasCtx.save();
+      canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+      canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
       
-      hands.setOptions({
-        maxNumHands: 1,
-        minDetectionConfidence: 0.7,
-        minTrackingConfidence: 0.7
-      });
-
-      hands.onResults(onResults);
-
-      function onResults(results) {
-        if (!results.multiHandLandmarks) return;
-
-        const landmarks = results.multiHandLandmarks[0];
-        const ringEntity = document.getElementById('ring');
-
-        // 获取食指指尖坐标（假设戒指戴在食指上）
-        const indexFingerTip = landmarks[8];
-        const {x, y, z} = indexFingerTip;
-
-        // 将Mediapipe坐标转换为A-Frame坐标
-        ringEntity.setAttribute('position', {
-          x: x * 2 - 1,
-          y: -(y * 2 - 1),
-          z: -z
-        });
+      if (results.multiHandLandmarks) {
+        for (const landmarks of results.multiHandLandmarks) {
+          drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, {color: '#00FF00', lineWidth: 5});
+          drawLandmarks(canvasCtx, landmarks, {color: '#FF0000', lineWidth: 2});
+          
+          // 在 A-Frame 中创建手部点
+          const handPoints = document.getElementById('hand-points');
+          handPoints.innerHTML = ''; // 清除之前的点
+          for (const point of landmarks) {
+            const pointEl = document.createElement('a-sphere');
+            pointEl.setAttribute('radius', '0.01');
+            pointEl.setAttribute('color', '#FF0000');
+            pointEl.setAttribute('position', `${point.x - 0.5} ${point.y - 0.5} -1`);
+            handPoints.appendChild(pointEl);
+          }
+        }
       }
-
-      const camera = new Camera(videoElement, {
-        onFrame: async () => {
-          await hands.send({image: videoElement});
-        },
-        width: 640,
-        height: 480
-      });
-
-      camera.start();
-    </script>
-  </body>
+      canvasCtx.restore();
+    }
+  </script>
+</body>
 </html>
