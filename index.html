@@ -1,18 +1,60 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <meta charset="utf-8">
-  <meta http-equiv="Content-Security-Policy" content="script-src 'self' https://aframe.io https://cdn.jsdelivr.net;">
-  <title>00</title>
-  <script src="https://aframe.io/releases/1.2.0/aframe.min.js" defer></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" defer></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" defer></script>
-  <script src="script.js" defer></script>
-</head>
-<body>
-  <a-scene>
-    <a-entity camera></a-entity>
-    <a-entity id="hand-points"></a-entity>
-  </a-scene>
-</body>
+  <head>
+    <meta charset="UTF-8">
+    <title>Web AR Hand Tracking</title>
+    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+  </head>
+  <body>
+    <a-scene>
+      <a-entity camera></a-entity>
+      <a-sphere id="ring" color="gold" radius="0.01"></a-sphere>
+    </a-scene>
+    <video id="input_video" style="display:none;"></video>
+    <script>
+      // 初始化Mediapipe
+      const videoElement = document.getElementById('input_video');
+      const hands = new Hands({
+        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`,
+      });
+      
+      hands.setOptions({
+        maxNumHands: 1,
+        minDetectionConfidence: 0.7,
+        minTrackingConfidence: 0.7
+      });
+
+      hands.onResults(onResults);
+
+      function onResults(results) {
+        if (!results.multiHandLandmarks) return;
+
+        const landmarks = results.multiHandLandmarks[0];
+        const ringEntity = document.getElementById('ring');
+
+        // 获取食指指尖坐标（假设戒指戴在食指上）
+        const indexFingerTip = landmarks[8];
+        const {x, y, z} = indexFingerTip;
+
+        // 将Mediapipe坐标转换为A-Frame坐标
+        ringEntity.setAttribute('position', {
+          x: x * 2 - 1,
+          y: -(y * 2 - 1),
+          z: -z
+        });
+      }
+
+      const camera = new Camera(videoElement, {
+        onFrame: async () => {
+          await hands.send({image: videoElement});
+        },
+        width: 640,
+        height: 480
+      });
+
+      camera.start();
+    </script>
+  </body>
 </html>
