@@ -2,14 +2,14 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>Hand Tracking with Mediapipe and A-Frame</title>
+    <title>Hand Tracking with Mediapipe and A-Frame2</title>
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
   </head>
   <body>
     <a-scene>
-      <a-entity camera></a-entity>
+      <a-entity camera look-controls></a-entity>
       <a-entity id="hand-points"></a-entity>
     </a-scene>
 
@@ -43,32 +43,19 @@
         const handPointsEntity = document.getElementById('hand-points');
         handPointsEntity.innerHTML = ''; // 清空之前的點
 
-        if (results.multiHandLandmarks) {
+        if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
           for (const landmarks of results.multiHandLandmarks) {
-            let ringPosition = null;
-            landmarks.forEach((landmark, index) => {
+            for (let i = 0; i < landmarks.length; i++) {
+              const landmark = landmarks[i];
               const x = (landmark.x - 0.5) * 2;
               const y = (landmark.y - 0.5) * -2;
-              const z = landmark.z * -1;
-
-              if (index === 5) { // 食指指根
-                ringPosition = `${x} ${y} ${z}`;
-              }
+              const z = landmark.z * -2;
 
               const point = document.createElement('a-sphere');
               point.setAttribute('position', `${x} ${y} ${z}`);
               point.setAttribute('radius', '0.01');
               point.setAttribute('color', 'red');
               handPointsEntity.appendChild(point);
-            });
-
-            if (ringPosition) {
-              const ring = document.createElement('a-ring');
-              ring.setAttribute('position', ringPosition);
-              ring.setAttribute('radius-inner', '0.015');
-              ring.setAttribute('radius-outer', '0.02');
-              ring.setAttribute('color', 'gold');
-              handPointsEntity.appendChild(ring);
             }
           }
         }
