@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>01</title>
+    <title>02</title>
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
@@ -10,7 +10,7 @@
 <body style='margin : 0px; overflow: hidden;'>
     <a-scene embedded arjs='sourceType: webcam;'>
         <!-- 3D戒指模型 -->
-        <a-entity id="ring" gltf-model="url(assets/ring.glb)" position="0 0 -5" animation-mixer></a-entity>
+        <a-entity id="ring" gltf-model="url(assets/ring.glb)" position="0 0 -20" animation-mixer></a-entity>
         <!-- 使用MediaPipe的手部追踪數據來定位戒指 -->
         <a-entity camera></a-entity>
     </a-scene>
@@ -53,7 +53,7 @@
                     const y = middleFingerTip.y * -2 + 1; // Adjusting scale and orientation
                     const ringEntity = document.querySelector('#ring');
                     if (ringEntity) {
-                        ringEntity.object3D.position.set(x, y, -5); // Update the position based on the middle finger
+                        ringEntity.object3D.position.set(x, y, -20); // Update the position based on the middle finger
                     }
                 }
             }
