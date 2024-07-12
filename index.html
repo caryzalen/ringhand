@@ -1,97 +1,80 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>01</title>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web AR Hand Tracking</title>
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
-    <style>
-      body {
-        margin: 0;
-        overflow: hidden;
-      }
-      video {
-        display: none;
-      }
-    </style>
-  </head>
-  <body>
-    <a-scene>
-      <a-entity camera></a-entity>
-      <a-entity
-        id="ring"
-        geometry="primitive: ring; radiusInner: 0.03; radiusOuter: 0.05"
-        material="color: gold"
-      ></a-entity>
+</head>
+<body>
+    <a-scene embedded arjs='sourceType: webcam; debugUIEnabled: false;'>
+        <a-entity camera></a-entity>
     </a-scene>
-    <video id="input_video" autoplay></video>
+    <canvas id="outputCanvas" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%;"></canvas>
     <script>
-      const videoElement = document.getElementById('input_video');
-      const ringEntity = document.getElementById('ring');
+        document.addEventListener('DOMContentLoaded', function() {
+            const videoElement = document.createElement('video');
+            const canvasElement = document.getElementById('outputCanvas');
+            const canvasCtx = canvasElement.getContext('2d');
 
-      async function setupCamera() {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'user' },
+            const hands = new Hands({
+                locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+            });
+
+            hands.setOptions({
+                maxNumHands: 1,
+                modelComplexity: 1,
+                minDetectionConfidence: 0.5,
+                minTrackingConfidence: 0.5
+            });
+
+            hands.onResults((results) => {
+                canvasCtx.save();
+                canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+                canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+
+                if (results.multiHandLandmarks) {
+                    for (const landmarks of results.multiHandLandmarks) {
+                        drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, {color: '#00FF00', lineWidth: 5});
+                        drawLandmarks(canvasCtx, landmarks, {color: '#00FF00', lineWidth: 2});
+                    }
+                }
+                canvasCtx.restore();
+            });
+
+            const camera = new Camera(videoElement, {
+                onFrame: async () => {
+                    await hands.send({image: videoElement});
+                },
+                width: 1280,
+                height: 720
+            });
+            camera.start();
         });
-        videoElement.srcObject = stream;
-        await new Promise((resolve) => {
-          videoElement.onloadedmetadata = () => {
-            resolve(videoElement);
-          };
-        });
-      }
 
-      function onResults(results) {
-        if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-          const landmarks = results.multiHandLandmarks[0];
-          const indexFingerTip = landmarks[8];
-          const x = (indexFingerTip.x - 0.5) * 2;
-          const y = (indexFingerTip.y - 0.5) * -2;
-          ringEntity.setAttribute('position', { x: x * 0.5, y: y * 0.5, z: -1 });
-
-          // 顯示每個偵測點
-          for (let i = 0; i < landmarks.length; i++) {
-            const point = landmarks[i];
-            const px = (point.x - 0.5) * 2;
-            const py = (point.y - 0.5) * -2;
-            const pz = (point.z - 0.5) * -2;
-
-            let pointEntity = document.getElementById(`point-${i}`);
-            if (!pointEntity) {
-              pointEntity = document.createElement('a-sphere');
-              pointEntity.setAttribute('id', `point-${i}`);
-              pointEntity.setAttribute('radius', '0.01');
-              pointEntity.setAttribute('color', 'green');
-              document.querySelector('a-scene').appendChild(pointEntity);
+        function drawLandmarks(ctx, landmarks, style = {}) {
+            ctx.fillStyle = style.color || 'green';
+            for (const landmark of landmarks) {
+                ctx.beginPath();
+                ctx.arc(landmark.x * ctx.canvas.width, landmark.y * ctx.canvas.height, style.lineWidth || 5, 0, 2 * Math.PI);
+                ctx.fill();
             }
-            pointEntity.setAttribute('position', { x: px * 0.5, y: py * 0.5, z: -1 + pz });
-          }
         }
-      }
 
-      const hands = new Hands({
-        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`,
-      });
-      hands.setOptions({
-        maxNumHands: 1,
-        minDetectionConfidence: 0.7,
-        minTrackingConfidence: 0.5,
-      });
-      hands.onResults(onResults);
-
-      const camera = new Camera(videoElement, {
-        onFrame: async () => {
-          await hands.send({ image: videoElement });
-        },
-        width: 640,
-        height: 480,
-      });
-      camera.start();
-
-      setupCamera();
+        function drawConnectors(ctx, landmarks, connections, style = {}) {
+            ctx.beginPath();
+            ctx.strokeStyle = style.color || 'green';
+            ctx.lineWidth = style.lineWidth;
+            for (const [startIdx, endIdx] of connections) {
+                const start = landmarks[startIdx];
+                const end = landmarks[endIdx];
+                ctx.moveTo(start.x * ctx.canvas.width, start.y * ctx.canvas.height);
+                ctx.lineTo(end.x * ctx.canvas.width, end.y * ctx.canvas.height);
+            }
+            ctx.stroke();
+        }
     </script>
-  </body>
+</body>
 </html>
