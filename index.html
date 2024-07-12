@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>01</title>
+    <title>02</title>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script> <!-- 引入绘图工具 -->
 </head>
 <body>
     <video id="video" width="640" height="480" autoplay muted></video>
@@ -13,7 +14,6 @@
         const canvasElement = document.getElementById('canvas');
         const canvasCtx = canvasElement.getContext('2d');
 
-        // Define the onResults function to handle results
         function onResults(results) {
             canvasCtx.save();
             canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
@@ -27,12 +27,10 @@
             canvasCtx.restore();
         }
 
-        // Initialize the Hands component
         const hands = new Hands({
             locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
         });
 
-        // Set options for the Hands component
         hands.setOptions({
             maxNumHands: 1,
             modelComplexity: 1,
@@ -40,7 +38,6 @@
             minTrackingConfidence: 0.5
         });
 
-        // Connect the camera stream to the hands component
         navigator.mediaDevices.getUserMedia({ video: true })
             .then(function(stream) {
                 videoElement.srcObject = stream;
@@ -48,10 +45,8 @@
                     videoElement.play();
                 };
 
-                // Set up the onResults handler
                 hands.onResults(onResults);
 
-                // Create an animation loop to continuously feed frames
                 function onFrame() {
                     hands.send({ image: videoElement }).then(() => {
                         requestAnimationFrame(onFrame);
