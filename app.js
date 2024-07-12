@@ -19,7 +19,7 @@ scene.add(directionalLight);
 
 // 加載3D模型
 let loader = new THREE.GLTFLoader();
-loader.load('https://yourserver.com/path/to/your-model.glb', function(gltf) {
+loader.load('assets/ring.glb', function(gltf) {
     scene.add(gltf.scene);
 });
 
