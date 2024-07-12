@@ -22,7 +22,7 @@
 
             async function initializeApp() {
                 try {
-                    const ringMesh = await loadModel('assets/ring_model.glb');
+                    const ringMesh = await loadModel('assets/ring.glb');
                     scene.add(ringMesh);
                     initHandTracking(ringMesh);
                     document.getElementById('loading').style.display = 'none';
