@@ -36,6 +36,8 @@
       camera.start();
 
       function onResults(results) {
+        console.log('Hand tracking results:', results); // Debug log
+
         const handPointsEntity = document.querySelector('#hand-points');
         handPointsEntity.innerHTML = ''; // Clear previous points
 
@@ -47,6 +49,8 @@
             const y = -(landmark.y * 2 - 1);  // Normalize to A-Frame coordinates
             const z = -landmark.z;  // Depth
 
+            console.log(`Point ${index}: x=${x}, y=${y}, z=${z}`); // Debug log
+
             const point = document.createElement('a-sphere');
             point.setAttribute('position', {x, y, z});
             point.setAttribute('radius', 0.02);
@@ -57,6 +61,10 @@
           });
         }
       }
+
+      videoElement.addEventListener('loadeddata', (event) => {
+        console.log('Video loaded');
+      });
     </script>
   </body>
 </html>
