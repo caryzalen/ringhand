@@ -1,30 +1,21 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Web AR Hand Tracking</title>
-    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+    <title>AR Hand Tracking</title>
+    <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
   </head>
-  <body>
-    <a-scene>
+  <body style="margin: 0; overflow: hidden;">
+    <a-scene vr-mode-ui="enabled: false;" arjs="sourceType: webcam;">
+      <a-entity id="ring" geometry="primitive: ring; radiusInner: 0.02; radiusOuter: 0.03;" material="color: red;"></a-entity>
       <a-entity camera></a-entity>
-      <a-entity id="ring" geometry="primitive: ring; radiusInner: 0.02; radiusOuter: 0.03" material="color: gold;"></a-entity>
     </a-scene>
-    <video id="input_video" style="display:none;"></video>
-    <canvas id="output_canvas" style="display:none;"></canvas>
     <script>
-      const videoElement = document.getElementById('input_video');
-      const canvasElement = document.getElementById('output_canvas');
-      const canvasCtx = canvasElement.getContext('2d');
-
-      const hands = new Hands({
-        locateFile: (file) => {
-          return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
-        }
-      });
-
+      const videoElement = document.createElement('video');
+      const hands = new Hands({locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`});
       hands.setOptions({
         maxNumHands: 1,
         modelComplexity: 1,
@@ -45,19 +36,15 @@
 
       function onResults(results) {
         if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-          const landmarks = results.multiHandLandmarks[0];
+          const ringEntity = document.querySelector('#ring');
+          const handLandmarks = results.multiHandLandmarks[0];
+          const fingerTip = handLandmarks[8];  // Index finger tip
 
-          // 获取中指根部的坐标（其他手指的关节点也可以使用）
-          const ringFingerBase = landmarks[9];
+          const x = fingerTip.x * 2 - 1;  // Normalize to A-Frame coordinates
+          const y = -(fingerTip.y * 2 - 1);  // Normalize to A-Frame coordinates
+          const z = -fingerTip.z;  // Depth
 
-          // 将2D坐标转换为3D坐标，这里假设手部追踪是在640x480的画布上
-          const x = (ringFingerBase.x - 0.5) * 2;
-          const y = (ringFingerBase.y - 0.5) * -2;
-          const z = ringFingerBase.z * -2;
-
-          // 调整A-Frame中戒指的位置
-          const ringEntity = document.getElementById('ring');
-          ringEntity.setAttribute('position', {x: x, y: y, z: z});
+          ringEntity.setAttribute('position', {x, y, z});
         }
       }
     </script>
