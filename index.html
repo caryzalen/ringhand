@@ -7,7 +7,6 @@
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
   </head>
   <body>
     <a-scene>
@@ -16,6 +15,9 @@
     </a-scene>
     <script>
       const videoElement = document.createElement('video');
+      document.body.appendChild(videoElement);
+      videoElement.style.display = 'none';
+
       const hands = new Hands({
         locateFile: (file) => {
           return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
@@ -40,28 +42,30 @@
       hands.onResults((results) => {
         if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
           const landmarks = results.multiHandLandmarks[0];
-          // 找到中指的指骨 (MCP, PIP, DIP, Tip)
           const middleFinger = landmarks.slice(9, 13);
 
-          // 更新戒指位置
           const ringEntity = document.getElementById('ring');
-          const normalizedLandmark = middleFinger[0]; // 中指MCP
+          const normalizedLandmark = middleFinger[0];
           const x = (normalizedLandmark.x - 0.5) * 2;
           const y = (normalizedLandmark.y - 0.5) * -2;
           const z = -normalizedLandmark.z * 2;
 
           ringEntity.setAttribute('position', { x, y, z });
 
-          // 在每个检测点上显示绿色点
+          const scene = document.querySelector('a-scene');
+          const existingPoints = scene.querySelectorAll('.point');
+          existingPoints.forEach((point) => point.parentNode.removeChild(point));
+
           for (let landmark of landmarks) {
             const point = document.createElement('a-sphere');
             point.setAttribute('radius', '0.01');
             point.setAttribute('color', 'green');
+            point.setAttribute('class', 'point');
             const px = (landmark.x - 0.5) * 2;
             const py = (landmark.y - 0.5) * -2;
             const pz = -landmark.z * 2;
             point.setAttribute('position', { x: px, y: py, z: pz });
-            document.querySelector('a-scene').appendChild(point);
+            scene.appendChild(point);
           }
         }
       });
