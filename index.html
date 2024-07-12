@@ -12,42 +12,38 @@
             overflow: hidden;
             background: #000;
         }
-        #videoElement, #canvasElement {
+        #videoElement {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover; /* Adjust this to 'cover' or 'contain' based on the desired effect */
+            z-index: -1; /* Keep the video behind other content */
+        }
+        #canvasElement {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            object-fit: cover; /* Ensures video covers the screen while maintaining the aspect ratio */
-            z-index: -1; /* Keep the video behind other content */
-        }
-        canvas {
-            position: absolute;
-            left: 0;
-            top: 0;
+            z-index: 0;
         }
     </style>
-    <!-- TensorFlow.js for ML computations -->
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-    <!-- MediaPipe Hands for hand tracking -->
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands"></script>
-    <!-- MediaPipe Camera Utils for video handling -->
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
 </head>
 <body>
-    <video id="videoElement" playsinline autoplay muted></video> <!-- Muted to allow autoplay without interaction -->
+    <video id="videoElement" playsinline autoplay muted></video>
     <canvas id="canvasElement"></canvas>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
     <script>
         window.onload = () => {
             const videoElement = document.getElementById('videoElement');
             const canvasElement = document.getElementById('canvasElement');
             const ctx = canvasElement.getContext('2d');
-
-            // Set the canvas size to the window size
-            canvasElement.width = window.innerWidth;
-            canvasElement.height = window.innerHeight;
-
-            // MediaPipe Hands initialization
             const hands = new Hands({
                 locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
             });
@@ -59,7 +55,21 @@
                 minTrackingConfidence: 0.5
             });
 
-            // Camera setup
+            function onResults(results) {
+                ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+                if (results.image) {
+                    ctx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+                }
+                if (results.multiHandLandmarks) {
+                    for (const landmarks of results.multiHandLandmarks) {
+                        drawConnectors(ctx, landmarks, Hands.HAND_CONNECTIONS, {color: '#00FF00', lineWidth: 5});
+                        drawLandmarks(ctx, landmarks, {color: '#FF0000', lineWidth: 2});
+                    }
+                }
+            }
+
+            hands.onResults(onResults);
+
             const camera = new Camera(videoElement, {
                 onFrame: async () => {
                     await hands.send({image: videoElement});
@@ -68,28 +78,6 @@
                 height: window.innerHeight
             });
             camera.start();
-
-            // Drawing the results
-            hands.onResults((results) => {
-                ctx.save();
-                ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-                ctx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
-                if (results.multiHandLandmarks) {
-                    for (const landmarks of results.multiHandLandmarks) {
-                        drawConnectors(ctx, landmarks, Hands.HAND_CONNECTIONS, {color: '#00FF00', lineWidth: 5});
-                        drawLandmarks(ctx, landmarks, {color: '#FF0000', lineWidth: 2});
-                    }
-                }
-                ctx.restore();
-            });
-
-            // Adjust canvas and camera settings on window resize
-            window.addEventListener('resize', () => {
-                canvasElement.width = window.innerWidth;
-                canvasElement.height = window.innerHeight;
-                camera.reset();
-                camera.start();
-            });
         };
     </script>
 </body>
