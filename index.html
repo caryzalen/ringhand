@@ -20,7 +20,7 @@
             // 加载3D模型
             const loader = new THREE.GLTFLoader();
             let ringMesh;
-            loader.load('path/to/your/ring/model.gltf', function(gltf) {
+            loader.load('assets/ring.glb', function(gltf) {
                 ringMesh = gltf.scene;
                 scene.add(ringMesh); // 将戒指模型添加到场景
             });
