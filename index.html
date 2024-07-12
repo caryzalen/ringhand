@@ -1,84 +1,62 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>MediaPipe Hands Tracking</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        body, html {
-            margin: 0;
-            padding: 0;
-            height: 100%;
-            overflow: hidden;
-            background: #000;
-        }
-        #videoElement {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover; /* Adjust this to 'cover' or 'contain' based on the desired effect */
-            z-index: -1; /* Keep the video behind other content */
-        }
-        #canvasElement {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 0;
-        }
-    </style>
-</head>
-<body>
-    <video id="videoElement" playsinline autoplay muted></video>
-    <canvas id="canvasElement"></canvas>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
-    <script>
-        window.onload = () => {
-            const videoElement = document.getElementById('videoElement');
-            const canvasElement = document.getElementById('canvasElement');
-            const ctx = canvasElement.getContext('2d');
-            const hands = new Hands({
-                locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
-            });
+window.onload = () => {
+    const videoElement = document.getElementById('videoElement');
+    const canvasElement = document.getElementById('canvasElement');
+    const ctx = canvasElement.getContext('2d');
 
-            hands.setOptions({
-                maxNumHands: 2,
-                modelComplexity: 1,
-                minDetectionConfidence: 0.5,
-                minTrackingConfidence: 0.5
-            });
+    // 尝试获取后置摄像头
+    const constraints = {
+        audio: false,
+        video: {
+            facingMode: "environment" // 使用后置摄像头
+        }
+    };
 
-            function onResults(results) {
-                ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-                if (results.image) {
-                    ctx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
-                }
-                if (results.multiHandLandmarks) {
-                    for (const landmarks of results.multiHandLandmarks) {
-                        drawConnectors(ctx, landmarks, Hands.HAND_CONNECTIONS, {color: '#00FF00', lineWidth: 5});
-                        drawLandmarks(ctx, landmarks, {color: '#FF0000', lineWidth: 2});
-                    }
+    // 启动视频流
+    function startVideo() {
+        navigator.mediaDevices.getUserMedia(constraints)
+            .then((stream) => {
+                videoElement.srcObject = stream;
+                videoElement.play();
+                setupMediaPipe();
+            }).catch((error) => {
+                console.error('Error accessing the camera.', error);
+                // 如果无法获取后置摄像头，可以在这里尝试切换到默认摄像头
+            });
+    }
+
+    // 设置 MediaPipe
+    function setupMediaPipe() {
+        const hands = new Hands({
+            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+        });
+
+        hands.setOptions({
+            maxNumHands: 2,
+            modelComplexity: 1,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5
+        });
+
+        hands.onResults((results) => {
+            ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+            ctx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+            if (results.multiHandLandmarks) {
+                for (const landmarks of results.multiHandLandmarks) {
+                    drawConnectors(ctx, landmarks, Hands.HAND_CONNECTIONS, { color: '#00FF00', lineWidth: 5 });
+                    drawLandmarks(ctx, landmarks, { color: '#FF0000', lineWidth: 2 });
                 }
             }
+        });
 
-            hands.onResults(onResults);
+        const camera = new Camera(videoElement, {
+            onFrame: async () => {
+                await hands.send({ image: videoElement });
+            },
+            width: window.innerWidth,
+            height: window.innerHeight
+        });
+        camera.start();
+    }
 
-            const camera = new Camera(videoElement, {
-                onFrame: async () => {
-                    await hands.send({image: videoElement});
-                },
-                width: window.innerWidth,
-                height: window.innerHeight
-            });
-            camera.start();
-        };
-    </script>
-</body>
-</html>
+    startVideo();
+};
