@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>00</title>
+    <title>01</title>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
@@ -73,15 +73,21 @@
             }
         });
 
+        function transformLandmarkTo3D(x, y, z) {
+            // 將 Mediapipe 2D 手部座標轉換為 Three.js 3D 空間中的位置
+            const posX = (x * 2 - 1) * window.innerWidth / window.innerHeight;
+            const posY = -(y * 2 - 1);
+            const posZ = -z;
+            return { x: posX, y: posY, z: posZ };
+        }
+
         hands.onResults((results) => {
             if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
                 const landmarks = results.multiHandLandmarks[0];
                 for (let i = 0; i < landmarks.length; i++) {
                     const { x, y, z } = landmarks[i];
-                    // 將2D座標轉換為3D座標
-                    const posX = (x - 0.5) * window.innerWidth / window.innerHeight;
-                    const posY = -(y - 0.5);
-                    points[i].position.set(posX, posY, -z * 0.5);
+                    const { x: posX, y: posY, z: posZ } = transformLandmarkTo3D(x, y, z);
+                    points[i].position.set(posX, posY, posZ);
                 }
             }
             renderer.render(scene, camera);
