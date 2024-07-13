@@ -1,87 +1,60 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hand Tracking AR</title>
     <style>
-        #output_canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-        }
-        #video {
-            display: none;
-        }
+        body { margin: 0; overflow: hidden; }
+        canvas { display: block; }
     </style>
 </head>
 <body>
-    <a-scene>
-        <a-entity camera></a-entity>
-    </a-scene>
-    <video id="video" playsinline></video>
+    <video id="input_video" style="display:none;"></video>
     <canvas id="output_canvas"></canvas>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/three.js/build/ar-threex.js"></script>
     <script>
-        const videoElement = document.getElementById('video');
+        const videoElement = document.getElementById('input_video');
         const canvasElement = document.getElementById('output_canvas');
         const canvasCtx = canvasElement.getContext('2d');
 
-        async function setupCamera() {
-            const stream = await navigator.mediaDevices.getUserMedia({
-                video: { width: 640, height: 480 }
-            });
-            videoElement.srcObject = stream;
-            await new Promise((resolve) => {
-                videoElement.onloadedmetadata = () => {
-                    resolve(videoElement);
-                };
-            });
-            videoElement.play();
-            canvasElement.width = videoElement.videoWidth;
-            canvasElement.height = videoElement.videoHeight;
-        }
+        // MediaPipe Hands setup
+        const hands = new Hands({
+            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+        });
+        hands.setOptions({
+            maxNumHands: 2,
+            modelComplexity: 1,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5
+        });
 
-        async function initializeHands() {
-            const hands = new Hands({
-                locateFile: (file) => {
-                    return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
-                }
-            });
+        hands.onResults(onResults);
 
-            hands.setOptions({
-                maxNumHands: 1,
-                minDetectionConfidence: 0.5,
-                minTrackingConfidence: 0.5
-            });
-
-            hands.onResults(onResults);
-
-            const camera = new Camera(videoElement, {
-                onFrame: async () => {
-                    await hands.send({ image: videoElement });
-                },
-                width: 640,
-                height: 480
-            });
-
-            camera.start();
-        }
+        const camera = new Camera(videoElement, {
+            onFrame: async () => {
+                await hands.send({ image: videoElement });
+            },
+            width: 1280,
+            height: 720
+        });
+        camera.start();
 
         function onResults(results) {
             canvasCtx.save();
             canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-            canvasCtx.drawImage(
-                results.image, 0, 0, canvasElement.width, canvasElement.height);
+            canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
 
             if (results.multiHandLandmarks) {
                 for (const landmarks of results.multiHandLandmarks) {
-                    for (const landmark of landmarks) {
-                        const x = landmark.x * canvasElement.width;
-                        const y = landmark.y * canvasElement.height;
+                    for (let i = 0; i < landmarks.length; i++) {
+                        const landmark = landmarks[i];
                         canvasCtx.beginPath();
-                        canvasCtx.arc(x, y, 5, 0, 2 * Math.PI);
+                        canvasCtx.arc(landmark.x * canvasElement.width, landmark.y * canvasElement.height, 5, 0, 2 * Math.PI);
                         canvasCtx.fillStyle = 'green';
                         canvasCtx.fill();
                     }
@@ -90,11 +63,62 @@
             canvasCtx.restore();
         }
 
-        setupCamera().then(() => {
-            initializeHands();
-        }).catch(error => {
-            console.error('Error initializing camera or hands:', error);
+        // Three.js and AR.js setup
+        const scene = new THREE.Scene();
+        const cameraAR = new THREE.Camera();
+        scene.add(cameraAR);
+
+        const renderer = new THREE.WebGLRenderer({ canvas: canvasElement, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+
+        const arToolkitSource = new THREEx.ArToolkitSource({
+            sourceType: 'webcam'
         });
+
+        arToolkitSource.init(() => {
+            setTimeout(() => {
+                onResize();
+            }, 2000);
+        });
+
+        window.addEventListener('resize', () => {
+            onResize();
+        });
+
+        function onResize() {
+            arToolkitSource.onResizeElement();
+            arToolkitSource.copyElementSizeTo(renderer.domElement);
+            if (arToolkitContext.arController !== null) {
+                arToolkitSource.copyElementSizeTo(arToolkitContext.arController.canvas);
+            }
+        }
+
+        const arToolkitContext = new THREEx.ArToolkitContext({
+            cameraParametersUrl: 'https://raw.githack.com/AR-js-org/AR.js/master/data/data/camera_para.dat',
+            detectionMode: 'mono'
+        });
+
+        arToolkitContext.init(() => {
+            cameraAR.projectionMatrix.copy(arToolkitContext.getProjectionMatrix());
+        });
+
+        const markerRoot = new THREE.Group();
+        scene.add(markerRoot);
+
+        const arMarkerControls = new THREEx.ArMarkerControls(arToolkitContext, markerRoot, {
+            type: 'pattern',
+            patternUrl: 'https://raw.githack.com/AR-js-org/AR.js/master/data/data/patt.hiro'
+        });
+
+        function render() {
+            requestAnimationFrame(render);
+            if (arToolkitSource.ready) {
+                arToolkitContext.update(arToolkitSource.domElement);
+            }
+            renderer.render(scene, cameraAR);
+        }
+
+        render();
     </script>
 </body>
 </html>
