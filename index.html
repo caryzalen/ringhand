@@ -1,17 +1,50 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>01</title>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
 </head>
 <body>
-    <video id="video" playsinline style="display: none;"></video>
-    <canvas id="canvas"></canvas>
-    <script src="app.js"></script> <!-- 加载你的JavaScript文件 -->
+    <a-scene>
+        <a-assets>
+            <!-- 預先加載3D模型 -->
+            <a-asset-item id="ringModel" src="path_to_your_ring_model.glb"></a-asset-item>
+        </a-assets>
+
+        <a-entity id="camera" camera></a-entity>
+        <!-- 在這裡加入戒指模型 -->
+        <a-entity gltf-model="#ringModel" id="ring"></a-entity>
+    </a-scene>
+
+    <script>
+        const hands = new Hands({
+            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+        });
+
+        hands.setOptions({
+            maxNumHands: 1,
+            modelComplexity: 1,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5
+        });
+
+        hands.onResults((results) => {
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                const landmarks = results.multiHandLandmarks[0];
+                // 更新戒指位置和方向的邏輯
+            }
+        });
+
+        const camera = document.getElementById('camera').object3D;
+        const ring = document.getElementById('ring').object3D;
+
+        // 假設使用相機捕捉影像
+        const videoElement = document.createElement('video');
+        navigator.mediaDevices.getUserMedia({video: true}).then((stream) => {
+            videoElement.srcObject = stream;
+            videoElement.play();
+            hands.send({image: videoElement});
+        });
+    </script>
 </body>
 </html>
