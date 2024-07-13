@@ -3,139 +3,104 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>00</title>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <title>01</title>
     <style>
-        body {
-            margin: 0;
-            overflow: hidden;
-        }
-        video, canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
+        body { margin: 0; }
+        canvas { display: block; }
     </style>
 </head>
 <body>
-    <video id="video" autoplay playsinline></video>
-    <canvas id="output"></canvas>
+    <video id="video" autoplay playsinline style="display: none;"></video>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.124.0/build/three.min.js"></script>
     <script>
-        // 初始化 Mediapipe Hands
+        const video = document.getElementById('video');
+
+        async function setupCamera() {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: 'environment' }
+            });
+            video.srcObject = stream;
+
+            return new Promise(resolve => {
+                video.onloadedmetadata = () => {
+                    resolve(video);
+                };
+            });
+        }
+
+        setupCamera();
+
         const hands = new Hands({
-            locateFile: (file) => {
-                return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
-            }
+            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
         });
 
         hands.setOptions({
-            maxNumHands: 2,
+            maxNumHands: 1,
             modelComplexity: 1,
             minDetectionConfidence: 0.5,
             minTrackingConfidence: 0.5
         });
 
-        // 初始化 Three.js 場景
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('output'), alpha: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        document.body.appendChild(renderer.domElement);
+        hands.onResults(onResults);
 
-        // 設置相機位置
-        camera.position.z = 1;
-
-        // 添加光源
-        const light = new THREE.AmbientLight(0x404040); 
-        scene.add(light);
-
-        // 添加綠色點
-        const points = [];
-        const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-        const geometry = new THREE.SphereGeometry(0.02, 32, 32);
-        for (let i = 0; i < 21; i++) {
-            const point = new THREE.Mesh(geometry, material);
-            scene.add(point);
-            points.push(point);
-        }
-
-        // 加載GLB模型
-        const loader = new THREE.GLTFLoader();
-        let model;
-        loader.load('assets/ring.glb', function(gltf) {
-            model = gltf.scene;
-            model.scale.set(0.05, 0.05, 0.05); // 調整模型大小
-            scene.add(model);
+        video.addEventListener('loadeddata', (event) => {
+            const camera = new Camera(video, {
+                onFrame: async () => {
+                    await hands.send({ image: video });
+                }
+            });
+            camera.start();
         });
 
-        // 使用 Mediapipe 的 CameraUtils 來處理相機
-        const videoElement = document.getElementById('video');
-        const cameraUtils = new Camera(videoElement, {
-            onFrame: async () => {
-                await hands.send({ image: videoElement });
-            }
-        });
+        let scene, camera, renderer, spheres = [];
 
-        function transformLandmarkTo3D(x, y, z) {
-            // 將 Mediapipe 2D 手部座標轉換為 Three.js 3D 空間中的位置
-            const posX = (x * 2 - 1) * window.innerWidth / window.innerHeight;
-            const posY = -(y * 2 - 1);
-            const posZ = -z;
-            return { x: posX, y: posY, z: posZ };
+        function initThreeJS() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            renderer = new THREE.WebGLRenderer();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
+
+            camera.position.z = 2;
         }
 
-        function calculateRotation(landmarks) {
-            const indexFinger = transformLandmarkTo3D(landmarks[5].x, landmarks[5].y, landmarks[5].z);
-            const wrist = transformLandmarkTo3D(landmarks[0].x, landmarks[0].y, landmarks[0].z);
-            const thumb = transformLandmarkTo3D(landmarks[17].x, landmarks[17].y, landmarks[17].z);
-
-            const dirX = new THREE.Vector3().subVectors(indexFinger, wrist).normalize();
-            const dirY = new THREE.Vector3().subVectors(thumb, wrist).normalize();
-            const dirZ = new THREE.Vector3().crossVectors(dirX, dirY).normalize();
-
-            const rotationMatrix = new THREE.Matrix4().makeBasis(dirX, dirY, dirZ);
-            return rotationMatrix;
+        function createSphere() {
+            const geometry = new THREE.SphereGeometry(0.01, 32, 32);
+            const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+            const sphere = new THREE.Mesh(geometry, material);
+            scene.add(sphere);
+            return sphere;
         }
 
-        hands.onResults((results) => {
+        function onResults(results) {
             if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
                 const landmarks = results.multiHandLandmarks[0];
-                for (let i = 0; i < landmarks.length; i++) {
-                    const { x, y, z } = landmarks[i];
-                    const { x: posX, y: posY, z: posZ } = transformLandmarkTo3D(x, y, z);
-                    points[i].position.set(posX, posY, posZ);
 
-                    // 如果是中指（假設是第9個點）
-                    if (i === 9 && model) {
-                        model.position.set(posX, posY, posZ);
-                        const rotationMatrix = calculateRotation(landmarks);
-                        model.setRotationFromMatrix(rotationMatrix);
-
-                        // 根據Z軸位置調整模型大小
-                        const scale = 1 / (posZ + 1.5); // 根據Z軸位置調整縮放比例
-                        model.scale.set(scale, scale, scale);
+                // 初始化球
+                if (spheres.length === 0) {
+                    for (let i = 0; i < landmarks.length; i++) {
+                        spheres.push(createSphere());
                     }
                 }
+
+                // 更新球的位置
+                for (let i = 0; i < landmarks.length; i++) {
+                    const landmark = landmarks[i];
+                    const sphere = spheres[i];
+                    sphere.position.set(
+                        landmark.x * 2 - 1, // X coordinates normalized to [-1, 1]
+                        -landmark.y * 2 + 1, // Y coordinates normalized to [-1, 1] and inverted
+                        landmark.z * -1 // Z coordinates
+                    );
+                }
             }
+
             renderer.render(scene, camera);
-        });
+        }
 
-        // 啟動相機
-        cameraUtils.start();
-
-        // 窗口調整大小時更新渲染器和相機
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
+        initThreeJS();
     </script>
 </body>
 </html>
