@@ -1,20 +1,47 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>01</title>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+    <style>
+        #output_canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        #video {
+            display: none;
+        }
+    </style>
 </head>
 <body>
     <a-scene>
         <a-entity camera></a-entity>
     </a-scene>
+    <video id="video" playsinline></video>
+    <canvas id="output_canvas"></canvas>
     <script>
-        const videoElement = document.createElement('video');
-        document.body.appendChild(videoElement);
+        const videoElement = document.getElementById('video');
+        const canvasElement = document.getElementById('output_canvas');
+        const canvasCtx = canvasElement.getContext('2d');
+
+        async function setupCamera() {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { width: 640, height: 480 }
+            });
+            videoElement.srcObject = stream;
+            await new Promise((resolve) => {
+                videoElement.onloadedmetadata = () => {
+                    resolve(videoElement);
+                };
+            });
+            videoElement.play();
+            canvasElement.width = videoElement.videoWidth;
+            canvasElement.height = videoElement.videoHeight;
+        }
 
         async function initializeHands() {
             const hands = new Hands({
@@ -33,49 +60,40 @@
 
             const camera = new Camera(videoElement, {
                 onFrame: async () => {
-                    try {
-                        await hands.send({ image: videoElement });
-                    } catch (error) {
-                        console.error('Error sending frame to hands:', error);
-                    }
+                    await hands.send({ image: videoElement });
                 },
                 width: 640,
                 height: 480
             });
 
-            try {
-                await camera.start();
-            } catch (error) {
-                console.error('Error starting camera:', error);
-            }
+            camera.start();
         }
 
         function onResults(results) {
+            canvasCtx.save();
+            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+            canvasCtx.drawImage(
+                results.image, 0, 0, canvasElement.width, canvasElement.height);
+
             if (results.multiHandLandmarks) {
-                results.multiHandLandmarks.forEach((landmarks) => {
-                    landmarks.forEach((landmark) => {
-                        const x = landmark.x * 2 - 1;
-                        const y = 1 - landmark.y * 2;
-                        createOrUpdateDot(x, y);
-                    });
-                });
+                for (const landmarks of results.multiHandLandmarks) {
+                    for (const landmark of landmarks) {
+                        const x = landmark.x * canvasElement.width;
+                        const y = landmark.y * canvasElement.height;
+                        canvasCtx.beginPath();
+                        canvasCtx.arc(x, y, 5, 0, 2 * Math.PI);
+                        canvasCtx.fillStyle = 'green';
+                        canvasCtx.fill();
+                    }
+                }
             }
+            canvasCtx.restore();
         }
 
-        function createOrUpdateDot(x, y, z = -5) {
-            let dot = document.getElementById('hand-dot');
-            if (!dot) {
-                dot = document.createElement('a-sphere');
-                dot.setAttribute('id', 'hand-dot');
-                dot.setAttribute('radius', '0.05');
-                dot.setAttribute('color', 'green');
-                document.querySelector('a-scene').appendChild(dot);
-            }
-            dot.setAttribute('position', { x: (x - 0.5) * 10, y: (y - 0.5) * 10, z: z });
-        }
-
-        initializeHands().catch(error => {
-            console.error('Error initializing hands:', error);
+        setupCamera().then(() => {
+            initializeHands();
+        }).catch(error => {
+            console.error('Error initializing camera or hands:', error);
         });
     </script>
 </body>
