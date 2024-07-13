@@ -1,81 +1,17 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <title>01</title>
-    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Virtual Try-On</title>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="your_script.js"></script> <!-- Path to your JavaScript file -->
 </head>
 <body>
-    <a-scene>
-        <a-assets>
-            <video id="video" autoplay loop muted playsinline></video>
-        </a-assets>
-        <!-- Fixed position for camera feed -->
-        <a-entity position="0 1.6 -1">
-            <a-video src="#video" width="16" height="9" position="0 0 0"></a-video>
-        </a-entity>
-        <a-entity camera look-controls></a-entity>
-        <a-entity id="ring" geometry="primitive: ring; radiusOuter: 0.05; radiusInner: 0.03" material="color: red; side: double;"></a-entity>
-    </a-scene>
-    <script>
-        const videoElement = document.getElementById('video');
-        document.body.appendChild(videoElement);
-        videoElement.style.display = 'block'; // 确保视频可见
-
-        const hands = new Hands({
-            locateFile: (file) => {
-                return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
-            },
-        });
-        hands.setOptions({
-            maxNumHands: 1,
-            modelComplexity: 1,
-            minDetectionConfidence: 0.5,
-            minTrackingConfidence: 0.5,
-        });
-
-        const camera = new Camera(videoElement, {
-            onFrame: async () => {
-                await hands.send({ image: videoElement });
-            },
-            width: 1280,
-            height: 720,
-        });
-        camera.start();
-
-        hands.onResults((results) => {
-            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-                const landmarks = results.multiHandLandmarks[0];
-                const middleFinger = landmarks.slice(9, 13);
-
-                const ringEntity = document.getElementById('ring');
-                const normalizedLandmark = middleFinger[0];
-                const x = (normalizedLandmark.x - 0.5) * 2;
-                const y = (normalizedLandmark.y - 0.5) * -2;
-                const z = -normalizedLandmark.z * 2;
-
-                ringEntity.setAttribute('position', { x, y, z });
-
-                const scene = document.querySelector('a-scene');
-                const existingPoints = scene.querySelectorAll('.point');
-                existingPoints.forEach((point) => point.parentNode.removeChild(point));
-
-                for (let landmark of landmarks) {
-                    const point = document.createElement('a-sphere');
-                    point.setAttribute('radius', '0.01');
-                    point.setAttribute('color', 'green');
-                    point.setAttribute('class', 'point');
-                    const px = (landmark.x - 0.5) * 2;
-                    const py = (landmark.y - 0.5) * -2;
-                    const pz = -landmark.z * 2;
-                    point.setAttribute('position', { x: px, y: py, z: pz });
-                    scene.appendChild(point);
-                }
-            }
-        });
-    </script>
+    <video id="video" playsinline style="display: none;"></video>
+    <canvas id="canvas"></canvas>
 </body>
 </html>
