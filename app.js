@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const loader = new THREE.GLTFLoader();
     let ringMesh;
 
-    loader.load('path_to_your_3d_model/your_model.gltf', function(gltf) {
+    loader.load('assets/ring.glb', function(gltf) {
         ringMesh = gltf.scene;
         scene.add(ringMesh);
         ringMesh.scale.set(0.1, 0.1, 0.1);
