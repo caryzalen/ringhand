@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>01</title>
+  <title>02</title>
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
   <script src="https://rawgit.com/jeromeetienne/AR.js/master/aframe/build/aframe-ar.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands"></script>
@@ -55,7 +55,7 @@
 
             const point = document.createElement('a-sphere');
             point.setAttribute('position', `${x} ${y} ${z}`);
-            point.setAttribute('radius', '0.1'); // 调整点的大小
+            point.setAttribute('radius', '0.01'); // 调整点的大小
             point.setAttribute('color', 'green');
             point.setAttribute('id', `point-${index}`);
             handPointsEntity.appendChild(point);
