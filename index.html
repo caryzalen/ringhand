@@ -1,73 +1,76 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>00</title>
-  <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-  <script src="https://rawgit.com/jeromeetienne/AR.js/master/aframe/build/aframe-ar.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web AR Hand Tracking</title>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
-<body style='margin: 0px; overflow: hidden;'>
-  <video class="input_video" style="display: none;"></video>
-  <a-scene embedded arjs='sourceType: webcam;'>
-    <a-entity camera></a-entity>
-    <a-entity id="hand-points"></a-entity>
-  </a-scene>
-  <script>
-    const hands = new Hands({
-      locateFile: (file) => {
-        return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
-      }
-    });
+<body>
+    <video id="video" style="display:none" autoplay></video>
+    <script>
+        // 初始化 Mediapipe Hands
+        const hands = new Hands({
+            locateFile: (file) => {
+                return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+            }
+        });
 
-    hands.setOptions({
-      maxNumHands: 1,
-      modelComplexity: 1,
-      minDetectionConfidence: 0.5,
-      minTrackingConfidence: 0.5
-    });
+        hands.setOptions({
+            maxNumHands: 2,
+            modelComplexity: 1,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5
+        });
 
-    hands.onResults(onResults);
+        // 初始化 Three.js 場景
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
 
-    const videoElement = document.getElementsByClassName('input_video')[0];
-    const camera = new Camera(videoElement, {
-      onFrame: async () => {
-        await hands.send({image: videoElement});
-      },
-      width: 640,
-      height: 480
-    });
-    camera.start();
+        // 設置相機位置
+        camera.position.z = 5;
 
-    function onResults(results) {
-      const handPointsEntity = document.getElementById('hand-points');
-      handPointsEntity.innerHTML = ''; // 清空之前的点
+        // 添加光源
+        const light = new THREE.AmbientLight(0x404040); 
+        scene.add(light);
 
-      if (results.multiHandLandmarks) {
-        console.log('Hand landmarks detected:', results.multiHandLandmarks); // Debug log
-        for (const landmarks of results.multiHandLandmarks) {
-          landmarks.forEach((landmark, index) => {
-            const x = (landmark.x * 2 - 1); // 转换坐标到[-1, 1]
-            const y = -(landmark.y * 2 - 1); // 转换坐标到[-1, 1]
-            const z = -landmark.z;10 // z 坐标直接使用
-
-            console.log(`Point ${index}: (${x}, ${y}, ${z})`); // Debug log
-
-            const point = document.createElement('a-sphere');
-            point.setAttribute('position', `${x} ${y} ${z}`);
-            point.setAttribute('radius', '0.01'); // 调整点的大小
-            point.setAttribute('color', 'green');
-            point.setAttribute('id', `point-${index}`);
-            handPointsEntity.appendChild(point);
-          });
+        // 添加綠色點
+        const points = [];
+        const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+        const geometry = new THREE.SphereGeometry(0.05, 32, 32);
+        for (let i = 0; i < 21; i++) {
+            const point = new THREE.Mesh(geometry, material);
+            scene.add(point);
+            points.push(point);
         }
-      } else {
-        console.log('No hand landmarks detected'); // Debug log
-      }
-    }
-  </script>
+
+        // 使用 Mediapipe 的 CameraUtils 來處理相機
+        const videoElement = document.getElementById('video');
+        const cameraUtils = new Camera(videoElement, {
+            onFrame: async () => {
+                await hands.send({ image: videoElement });
+            }
+        });
+
+        hands.onResults((results) => {
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                const landmarks = results.multiHandLandmarks[0];
+                for (let i = 0; i < landmarks.length; i++) {
+                    const { x, y, z } = landmarks[i];
+                    points[i].position.set((x - 0.5) * 2, (y - 0.5) * -2, -z);
+                }
+            }
+            renderer.render(scene, camera);
+        });
+
+        // 啟動相機
+        cameraUtils.start();
+    </script>
 </body>
 </html>
