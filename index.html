@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web AR Hand Tracking</title>
+    <title>00</title>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
@@ -58,7 +58,7 @@
         // 添加綠色點
         const points = [];
         const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-        const geometry = new THREE.SphereGeometry(0.01, 32, 32);
+        const geometry = new THREE.SphereGeometry(0.02, 32, 32);
         for (let i = 0; i < 21; i++) {
             const point = new THREE.Mesh(geometry, material);
             scene.add(point);
@@ -79,7 +79,9 @@
                 for (let i = 0; i < landmarks.length; i++) {
                     const { x, y, z } = landmarks[i];
                     // 將2D座標轉換為3D座標
-                    points[i].position.set((x - 0.5) * 2, -(y - 0.5) * 2, -z * 0.5);
+                    const posX = (x - 0.5) * window.innerWidth / window.innerHeight;
+                    const posY = -(y - 0.5);
+                    points[i].position.set(posX, posY, -z * 0.5);
                 }
             }
             renderer.render(scene, camera);
@@ -87,6 +89,13 @@
 
         // 啟動相機
         cameraUtils.start();
+
+        // 窗口調整大小時更新渲染器和相機
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
     </script>
 </body>
 </html>
