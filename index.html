@@ -1,66 +1,82 @@
 <!DOCTYPE html>
 <html>
-  <head>
+<head>
+    <title>01</title>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
-  </head>
-  <body>
+</head>
+<body>
     <a-scene>
-      <a-entity camera></a-entity>
+        <a-entity camera></a-entity>
     </a-scene>
     <script>
-      const videoElement = document.createElement('video');
-      document.body.appendChild(videoElement);
+        const videoElement = document.createElement('video');
+        document.body.appendChild(videoElement);
 
-      const hands = new Hands({
-        locateFile: (file) => {
-          return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
-        }
-      });
-
-      hands.setOptions({
-        maxNumHands: 1,
-        minDetectionConfidence: 0.5,
-        minTrackingConfidence: 0.5
-      });
-
-      hands.onResults(onResults);
-
-      const camera = new Camera(videoElement, {
-        onFrame: async () => {
-          await hands.send({ image: videoElement });
-        },
-        width: 640,
-        height: 480
-      });
-      camera.start();
-
-      function onResults(results) {
-        if (results.multiHandLandmarks) {
-          results.multiHandLandmarks.forEach((landmarks) => {
-            landmarks.forEach((landmark) => {
-              const x = landmark.x * 2 - 1;
-              const y = 1 - landmark.y * 2;
-              createOrUpdateDot(x, y);
+        async function initializeHands() {
+            const hands = new Hands({
+                locateFile: (file) => {
+                    return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+                }
             });
-          });
-        }
-      }
 
-      function createOrUpdateDot(x, y, z = -5) {
-        let dot = document.getElementById('hand-dot');
-        if (!dot) {
-          dot = document.createElement('a-sphere');
-          dot.setAttribute('id', 'hand-dot');
-          dot.setAttribute('radius', '0.05');
-          dot.setAttribute('color', 'green');
-          document.querySelector('a-scene').appendChild(dot);
+            hands.setOptions({
+                maxNumHands: 1,
+                minDetectionConfidence: 0.5,
+                minTrackingConfidence: 0.5
+            });
+
+            hands.onResults(onResults);
+
+            const camera = new Camera(videoElement, {
+                onFrame: async () => {
+                    try {
+                        await hands.send({ image: videoElement });
+                    } catch (error) {
+                        console.error('Error sending frame to hands:', error);
+                    }
+                },
+                width: 640,
+                height: 480
+            });
+
+            try {
+                await camera.start();
+            } catch (error) {
+                console.error('Error starting camera:', error);
+            }
         }
-        dot.setAttribute('position', { x: (x - 0.5) * 10, y: (y - 0.5) * 10, z: z });
-      }
+
+        function onResults(results) {
+            if (results.multiHandLandmarks) {
+                results.multiHandLandmarks.forEach((landmarks) => {
+                    landmarks.forEach((landmark) => {
+                        const x = landmark.x * 2 - 1;
+                        const y = 1 - landmark.y * 2;
+                        createOrUpdateDot(x, y);
+                    });
+                });
+            }
+        }
+
+        function createOrUpdateDot(x, y, z = -5) {
+            let dot = document.getElementById('hand-dot');
+            if (!dot) {
+                dot = document.createElement('a-sphere');
+                dot.setAttribute('id', 'hand-dot');
+                dot.setAttribute('radius', '0.05');
+                dot.setAttribute('color', 'green');
+                document.querySelector('a-scene').appendChild(dot);
+            }
+            dot.setAttribute('position', { x: (x - 0.5) * 10, y: (y - 0.5) * 10, z: z });
+        }
+
+        initializeHands().catch(error => {
+            console.error('Error initializing hands:', error);
+        });
     </script>
-  </body>
+</body>
 </html>
