@@ -1,46 +1,24 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>02</title>
-    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>01</title>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
-    <style>
-        body, html {
-            margin: 0;
-            height: 100%;
-            overflow: hidden;
-        }
-        video {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            z-index: -1; /* 使video位于A-Frame场景下方 */
-        }
-        a-scene {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-        }
-    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
 </head>
 <body>
-    <video id="inputVideo" autoplay playsinline></video>
-    <a-scene embedded arjs='sourceType: webcam; debugUIEnabled: false;'>
-        <a-entity camera look-controls></a-entity>
-        <a-entity id="ring" geometry="primitive: ring; radiusOuter: 0.05; radiusInner: 0.03" material="color: red; shader: flat;"></a-entity>
-    </a-scene>
-    <script>
-        // 初始化MediaPipe手部跟踪
-        const videoElement = document.getElementById('inputVideo');
-        const hands = new Hands({
-            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
-        });
+    <div style="position: relative;" id="camera-container"></div>
 
+    <script>
+        const videoElement = document.createElement('video');
+        videoElement.style.position = 'absolute';
+        videoElement.style.zIndex = '-1';
+        document.getElementById('camera-container').appendChild(videoElement);
+
+        const hands = new Hands({locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`});
         hands.setOptions({
             maxNumHands: 1,
             modelComplexity: 1,
@@ -48,45 +26,43 @@
             minTrackingConfidence: 0.5
         });
 
-        // 设置摄像头捕捉
         const camera = new Camera(videoElement, {
             onFrame: async () => {
-                await hands.send({ image: videoElement });
+                await hands.send({image: videoElement});
             },
             width: 1280,
             height: 720
         });
         camera.start();
 
-        // 处理手部检测结果
+        const scene = new THREE.Scene();
+        const cameraThreeJS = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+        cameraThreeJS.position.z = 5;
+
+        const loader = new THREE.GLTFLoader();
+        let ringMesh;
+        loader.load('assets/ring.glb', (gltf) => {
+            ringMesh = gltf.scene;
+            scene.add(ringMesh);
+            ringMesh.position.z = -5; // Adjust based on your model
+        });
+
+        function animate() {
+            requestAnimationFrame(animate);
+            renderer.render(scene, cameraThreeJS);
+        }
+        animate();
+
         hands.onResults((results) => {
-            const scene = document.querySelector('a-scene');
-            // 清除旧的点
-            scene.querySelectorAll('.point').forEach(point => point.remove());
-
-            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+            if (results.multiHandLandmarks && ringMesh) {
                 const landmarks = results.multiHandLandmarks[0];
-
-                // 根据当前检测创建新的关键点指示器
-                landmarks.forEach(landmark => {
-                    const point = document.createElement('a-sphere');
-                    point.setAttribute('radius', '0.01');
-                    point.setAttribute('color', 'green');
-                    point.setAttribute('class', 'point'); // 方便查询和清除
-                    const x = (landmark.x - 0.5) * 2; // 转换为A-Frame的坐标系
-                    const y = -(landmark.y - 0.5) * 2; // 转换为A-Frame的坐标系
-                    const z = -landmark.z * 2; // 转换为A-Frame的坐标系
-                    point.setAttribute('position', {x, y, z});
-                    scene.appendChild(point);
-                });
-
-                // 更新戒指位置，以中指尖端为例
-                const middleFingerTip = landmarks[12];
-                const ringX = (middleFingerTip.x - 0.5) * 2;
-                const ringY = -(middleFingerTip.y - 0.5) * 2;
-                const ringZ = -middleFingerTip.z * 2;
-                const ringEntity = document.getElementById('ring');
-                ringEntity.setAttribute('position', {x: ringX, y: ringY, z: ringZ});
+                const indexFinger = landmarks[8]; // Index for tip of the middle finger
+                ringMesh.position.x = (indexFinger.x - 0.5) * 2;
+                ringMesh.position.y = -(indexFinger.y - 0.5) * 2;
+                ringMesh.position.z = (indexFinger.z || -0.5) * 2;
             }
         });
     </script>
