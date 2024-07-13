@@ -10,7 +10,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils"></script>
 </head>
-<body style='margin : 0px; overflow: hidden;'>
+<body style='margin: 0px; overflow: hidden;'>
   <video class="input_video" style="display: none;"></video>
   <a-scene embedded arjs='sourceType: webcam;'>
     <a-entity camera></a-entity>
@@ -55,7 +55,7 @@
 
             const point = document.createElement('a-sphere');
             point.setAttribute('position', `${x} ${y} ${z}`);
-            point.setAttribute('radius', '0.02'); // 调整点的大小
+            point.setAttribute('radius', '0.1'); // 调整点的大小
             point.setAttribute('color', 'green');
             point.setAttribute('id', `point-${index}`);
             handPointsEntity.appendChild(point);
