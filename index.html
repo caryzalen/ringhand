@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>02</title>
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
 </head>
@@ -9,15 +8,26 @@
     <a-scene>
         <a-assets>
             <!-- Preload the 3D model -->
-            <a-asset-item id="ringModel" src="assets/ring.glb"></a-asset-item>
+            <a-asset-item id="ringModel" src="path_to_your_ring_model.glb"></a-asset-item>
         </a-assets>
 
-        <a-entity id="camera" camera></a-entity>
-        <!-- Position the ring initially -->
+        <!-- Camera entity with video texture -->
+        <a-entity id="camera" camera look-controls>
+            <a-video src="#video" width="16" height="9" position="0 0 -16"></a-video>
+        </a-entity>
+
+        <!-- Ring entity initially positioned at the origin -->
         <a-entity gltf-model="#ringModel" id="ring" position="0 0 0"></a-entity>
     </a-scene>
 
     <script>
+        const videoElement = document.createElement('video');
+        videoElement.setAttribute('autoplay', '');
+        videoElement.setAttribute('playsinline', '');
+        videoElement.style = 'display:none'; // Hide the video element
+        document.body.appendChild(videoElement);
+
+        // Set up MediaPipe Hands
         const hands = new Hands({
             locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
         });
@@ -32,26 +42,40 @@
         hands.onResults((results) => {
             if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
                 const landmarks = results.multiHandLandmarks[0];
-                const indexFingerTip = landmarks[8]; // Middle finger tip for example
+                const indexFingerTip = landmarks[8]; // Use middle finger tip for example
 
-                // Update the ring's position
+                // Update the ring's position based on the index finger tip
                 const ringEntity = document.getElementById('ring');
-                ringEntity.setAttribute('position', {
-                    x: indexFingerTip.x * 100, // Scaling factor might be needed
-                    y: indexFingerTip.y * 100,
-                    z: indexFingerTip.z * 100
-                });
-
-                // Add any additional rotation or scaling logic as needed
+                ringEntity.object3D.position.set(
+                    (indexFingerTip.x - 0.5) * 16, // Adjust these values as necessary
+                    (0.5 - indexFingerTip.y) * 9,
+                    -indexFingerTip.z * 5
+                );
             }
         });
 
-        const videoElement = document.createElement('video');
-        navigator.mediaDevices.getUserMedia({video: true}).then((stream) => {
+        // Request camera stream
+        navigator.mediaDevices.getUserMedia({ video: true }).then((stream) => {
             videoElement.srcObject = stream;
             videoElement.play();
-            hands.send({image: videoElement});
+            hands.send({ image: videoElement });
         });
+
+        // Set up A-Frame video asset
+        const aScene = document.querySelector('a-scene');
+        if (aScene.hasLoaded) {
+            setupVideo();
+        } else {
+            aScene.addEventListener('loaded', setupVideo);
+        }
+
+        function setupVideo() {
+            const videoTexture = new THREE.VideoTexture(videoElement);
+            const videoAsset = document.createElement('a-asset-item');
+            videoAsset.setAttribute('id', 'video');
+            videoAsset.setAttribute('src', videoTexture);
+            document.querySelector('a-assets').appendChild(videoAsset);
+        }
     </script>
 </body>
 </html>
