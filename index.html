@@ -1,16 +1,62 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>01</title>
-    <!-- 引入 MediaPipe 和 Three.js 的库 -->
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+    <script src="https://jeromeetienne.github.io/AR.js/aframe/build/aframe-ar.js"></script>
 </head>
-<body>
-    <canvas id="outputCanvas"></canvas>
-    <script src="app.js"></script>
+<body style='margin: 0px; overflow: hidden;'>
+    <a-scene embedded arjs='sourceType: webcam;'>
+        <!-- 3D戒指模型 -->
+        <a-entity id="ring" gltf-model="url(你的戒指模型.glb)" position="0 0 -5" animation-mixer></a-entity>
+        <!-- AR.js 和 A-Frame 的相机设置 -->
+        <a-entity camera></a-entity>
+    </a-scene>
+
+    <script>
+        const videoElement = document.createElement('video');
+        const canvasElement = document.createElement('canvas');
+        const canvasCtx = canvasElement.getContext('2d');
+
+        // 初始化 MediaPipe Hands
+        const hands = new Hands({
+            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+        });
+
+        // 设置手部追踪选项
+        hands.setOptions({
+            maxNumHands: 1,
+            modelComplexity: 1,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5
+        });
+
+        // 连接摄像头
+        const camera = new Camera(videoElement, {
+            onFrame: async () => {
+                await hands.send({image: videoElement});
+            },
+            width: 1280,
+            height: 720
+        });
+        camera.start();
+
+        // 处理手部追踪结果
+        hands.onResults((results) => {
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                const landmarks = results.multiHandLandmarks[0];
+                if (landmarks.length > 12) {
+                    const middleFingerTip = landmarks[12];  // 中指尖端
+                    const x = middleFingerTip.x * -2 + 1;  // 调整比例和方向
+                    const y = middleFingerTip.y * -2 + 1;  // 调整比例和方向
+                    const ringEntity = document.querySelector('#ring');
+                    if (ringEntity) {
+                        ringEntity.object3D.position.set(x, y, -5); // 更新戒指位置
+                    }
+                }
+            }
+        });
+    </script>
 </body>
 </html>
