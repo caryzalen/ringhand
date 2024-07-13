@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web AR Hand Tracking with GLB Model</title>
+    <title>01</title>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
@@ -69,7 +69,7 @@
         // 加載GLB模型
         const loader = new THREE.GLTFLoader();
         let model;
-        loader.load('assets/ring.glb', function(gltf) {
+        loader.load('asstes/ring.glb', function(gltf) {
             model = gltf.scene;
             model.scale.set(0.05, 0.05, 0.05); // 調整模型大小
             scene.add(model);
@@ -91,6 +91,19 @@
             return { x: posX, y: posY, z: posZ };
         }
 
+        function calculateRotation(landmarks) {
+            const indexFinger = transformLandmarkTo3D(landmarks[5].x, landmarks[5].y, landmarks[5].z);
+            const wrist = transformLandmarkTo3D(landmarks[0].x, landmarks[0].y, landmarks[0].z);
+            const thumb = transformLandmarkTo3D(landmarks[17].x, landmarks[17].y, landmarks[17].z);
+
+            const dirX = new THREE.Vector3().subVectors(indexFinger, wrist).normalize();
+            const dirY = new THREE.Vector3().subVectors(thumb, wrist).normalize();
+            const dirZ = new THREE.Vector3().crossVectors(dirX, dirY).normalize();
+
+            const rotationMatrix = new THREE.Matrix4().makeBasis(dirX, dirY, dirZ);
+            return rotationMatrix;
+        }
+
         hands.onResults((results) => {
             if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
                 const landmarks = results.multiHandLandmarks[0];
@@ -102,6 +115,8 @@
                     // 如果是中指（假設是第9個點）
                     if (i === 9 && model) {
                         model.position.set(posX, posY, posZ);
+                        const rotationMatrix = calculateRotation(landmarks);
+                        model.setRotationFromMatrix(rotationMatrix);
                     }
                 }
             }
