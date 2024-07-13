@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>01</title>
+    <title>Web AR Hand Tracking with GLB Model</title>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
     <style>
         body {
             margin: 0;
@@ -65,6 +66,15 @@
             points.push(point);
         }
 
+        // 加載GLB模型
+        const loader = new THREE.GLTFLoader();
+        let model;
+        loader.load('assets/ring.glb', function(gltf) {
+            model = gltf.scene;
+            model.scale.set(0.05, 0.05, 0.05); // 調整模型大小
+            scene.add(model);
+        });
+
         // 使用 Mediapipe 的 CameraUtils 來處理相機
         const videoElement = document.getElementById('video');
         const cameraUtils = new Camera(videoElement, {
@@ -88,6 +98,11 @@
                     const { x, y, z } = landmarks[i];
                     const { x: posX, y: posY, z: posZ } = transformLandmarkTo3D(x, y, z);
                     points[i].position.set(posX, posY, posZ);
+
+                    // 如果是中指（假設是第9個點）
+                    if (i === 9 && model) {
+                        model.position.set(posX, posY, posZ);
+                    }
                 }
             }
             renderer.render(scene, camera);
