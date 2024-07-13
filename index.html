@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>WebAR试戴戒指</title>
+    <title>01</title>
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
@@ -35,6 +35,7 @@
         <a-entity id="ring" geometry="primitive: ring; radiusOuter: 0.05; radiusInner: 0.03" material="color: red; shader: flat;"></a-entity>
     </a-scene>
     <script>
+        // 初始化MediaPipe手部跟踪
         const videoElement = document.getElementById('inputVideo');
         const hands = new Hands({
             locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
@@ -47,6 +48,7 @@
             minTrackingConfidence: 0.5
         });
 
+        // 设置摄像头捕捉
         const camera = new Camera(videoElement, {
             onFrame: async () => {
                 await hands.send({ image: videoElement });
@@ -56,7 +58,13 @@
         });
         camera.start();
 
+        // 处理手部检测结果
         hands.onResults((results) => {
+            const scene = document.querySelector('a-scene');
+            // 清除之前的关键点指示器
+            const existingPoints = scene.querySelectorAll('.point');
+            existingPoints.forEach((point) => point.parentNode.removeChild(point));
+
             if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
                 const landmarks = results.multiHandLandmarks[0];
                 const middleFinger = landmarks.slice(9, 13);
@@ -66,6 +74,19 @@
                 const z = -normalizedLandmark.z * 2;
                 const ringEntity = document.getElementById('ring');
                 ringEntity.setAttribute('position', { x, y, z });
+
+                // 根据当前检测创建新的关键点指示器
+                landmarks.forEach(landmark => {
+                    const point = document.createElement('a-sphere');
+                    point.setAttribute('radius', '0.01');
+                    point.setAttribute('color', 'green');
+                    point.setAttribute('class', 'point'); // 方便查询和清除
+                    const px = (landmark.x - 0.5) * 2;
+                    const py = (landmark.y - 0.5) * -2;
+                    const pz = -landmark.z * 2;
+                    point.setAttribute('position', { x: px, y: py, z: pz });
+                    scene.appendChild(point);
+                });
             }
         });
     </script>
