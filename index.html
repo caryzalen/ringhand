@@ -52,13 +52,13 @@
           landmarks.forEach((landmark, index) => {
             const x = (landmark.x * 2 - 1); // 转换坐标到[-1, 1]
             const y = -(landmark.y * 2 - 1); // 转换坐标到[-1, 1]
-            const z = -landmark.z;-10 // z 坐标直接使用
+            const z = -landmark.z;10 // z 坐标直接使用
 
             console.log(`Point ${index}: (${x}, ${y}, ${z})`); // Debug log
 
             const point = document.createElement('a-sphere');
             point.setAttribute('position', `${x} ${y} ${z}`);
-            point.setAttribute('radius', '0.02'); // 调整点的大小
+            point.setAttribute('radius', '0.01'); // 调整点的大小
             point.setAttribute('color', 'green');
             point.setAttribute('id', `point-${index}`);
             handPointsEntity.appendChild(point);
