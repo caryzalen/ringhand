@@ -15,7 +15,7 @@ scene.add(light);
 const loader = new THREE.GLTFLoader();
 let ringMesh;
 
-loader.load('path_to_your_3d_model/your_model.gltf', function (gltf) {
+loader.load('assets/ring.glb', function (gltf) {
     ringMesh = gltf.scene;
     scene.add(ringMesh);
     ringMesh.position.set(0, 0, 0);
