@@ -51,7 +51,7 @@
           landmarks.forEach((landmark, index) => {
             const x = (landmark.x * 2 - 1) * 0.5; // 缩放和转换坐标到[-0.5, 0.5]
             const y = -(landmark.y * 2 - 1) * 0.5; // 缩放和转换坐标到[-0.5, 0.5]
-            const z = -landmark.z * -5; // 缩放z坐标
+            const z = -landmark.z * -10; // 缩放z坐标
 
             const point = document.createElement('a-sphere');
             point.setAttribute('position', `${x} ${y} ${z}`);
