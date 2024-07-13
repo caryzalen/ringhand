@@ -8,13 +8,13 @@
 <body>
     <a-scene>
         <a-assets>
-            <!-- 預先加載3D模型 -->
+            <!-- Preload the 3D model -->
             <a-asset-item id="ringModel" src="assets/ring.glb"></a-asset-item>
         </a-assets>
 
         <a-entity id="camera" camera></a-entity>
-        <!-- 在這裡加入戒指模型 -->
-        <a-entity gltf-model="#ringModel" id="ring"></a-entity>
+        <!-- Position the ring initially -->
+        <a-entity gltf-model="#ringModel" id="ring" position="0 0 0"></a-entity>
     </a-scene>
 
     <script>
@@ -32,14 +32,20 @@
         hands.onResults((results) => {
             if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
                 const landmarks = results.multiHandLandmarks[0];
-                // 更新戒指位置和方向的邏輯
+                const indexFingerTip = landmarks[8]; // Middle finger tip for example
+
+                // Update the ring's position
+                const ringEntity = document.getElementById('ring');
+                ringEntity.setAttribute('position', {
+                    x: indexFingerTip.x * 100, // Scaling factor might be needed
+                    y: indexFingerTip.y * 100,
+                    z: indexFingerTip.z * 100
+                });
+
+                // Add any additional rotation or scaling logic as needed
             }
         });
 
-        const camera = document.getElementById('camera').object3D;
-        const ring = document.getElementById('ring').object3D;
-
-        // 假設使用相機捕捉影像
         const videoElement = document.createElement('video');
         navigator.mediaDevices.getUserMedia({video: true}).then((stream) => {
             videoElement.srcObject = stream;
