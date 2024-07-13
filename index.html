@@ -1,23 +1,22 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>WebAR Hand Tracking with MediaPipe</title>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>01</title>
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+  <script src="https://rawgit.com/jeromeetienne/AR.js/master/aframe/build/aframe-ar.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils"></script>
 </head>
-<body>
-  <a-scene>
-    <a-entity camera look-controls wasd-controls></a-entity>
-    <a-entity id="hand-tracking" position="0 0 -5"></a-entity>
+<body style='margin : 0px; overflow: hidden;'>
+  <video class="input_video" style="display: none;"></video>
+  <a-scene embedded arjs='sourceType: webcam;'>
+    <a-entity camera></a-entity>
+    <a-entity id="hand-points"></a-entity>
   </a-scene>
-
-  <video id="input_video" style="display:none;"></video>
-
   <script>
-    const videoElement = document.getElementById('input_video');
-    const handTrackingEntity = document.getElementById('hand-tracking');
-
     const hands = new Hands({
       locateFile: (file) => {
         return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
@@ -25,7 +24,7 @@
     });
 
     hands.setOptions({
-      maxNumHands: 2,
+      maxNumHands: 1,
       modelComplexity: 1,
       minDetectionConfidence: 0.5,
       minTrackingConfidence: 0.5
@@ -33,29 +32,32 @@
 
     hands.onResults(onResults);
 
+    const videoElement = document.getElementsByClassName('input_video')[0];
     const camera = new Camera(videoElement, {
       onFrame: async () => {
         await hands.send({image: videoElement});
       },
-      width: 1280,
-      height: 720
+      width: 640,
+      height: 480
     });
     camera.start();
 
     function onResults(results) {
-      handTrackingEntity.innerHTML = ''; // Clear previous points
-      if (results.multiHandLandmarks && results.multiHandedness) {
-        for (let landmarks of results.multiHandLandmarks) {
-          for (let point of landmarks) {
-            const x = point.x * 2 - 1; // Convert to AR.js coordinate system
-            const y = -point.y * 2 + 1;
-            const z = -point.z * 2;
+      const handPointsEntity = document.getElementById('hand-points');
+      handPointsEntity.innerHTML = '';
 
-            const sphere = document.createElement('a-sphere');
-            sphere.setAttribute('radius', '0.01');
-            sphere.setAttribute('color', 'green');
-            sphere.setAttribute('position', `${x} ${y} ${z}`);
-            handTrackingEntity.appendChild(sphere);
+      if (results.multiHandLandmarks) {
+        for (const landmarks of results.multiHandLandmarks) {
+          for (const landmark of landmarks) {
+            const x = landmark.x * 2 - 1;
+            const y = -(landmark.y * 2 - 1);
+            const z = -landmark.z;
+
+            const point = document.createElement('a-sphere');
+            point.setAttribute('position', `${x} ${y} ${z}`);
+            point.setAttribute('radius', '0.01');
+            point.setAttribute('color', 'green');
+            handPointsEntity.appendChild(point);
           }
         }
       }
