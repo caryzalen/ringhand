@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>05</title>
+  <title>Web AR Hand Tracking</title>
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
   <script src="https://rawgit.com/jeromeetienne/AR.js/master/aframe/build/aframe-ar.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands"></script>
@@ -47,11 +47,14 @@
       handPointsEntity.innerHTML = ''; // 清空之前的点
 
       if (results.multiHandLandmarks) {
+        console.log('Hand landmarks detected:', results.multiHandLandmarks); // Debug log
         for (const landmarks of results.multiHandLandmarks) {
           landmarks.forEach((landmark, index) => {
-            const x = (landmark.x * 2 - 1) * 0.5; // 缩放和转换坐标到[-0.5, 0.5]
-            const y = -(landmark.y * 2 - 1) * 0.5; // 缩放和转换坐标到[-0.5, 0.5]
-            const z = -landmark.z * -10; // 缩放z坐标
+            const x = (landmark.x * 2 - 1); // 转换坐标到[-1, 1]
+            const y = -(landmark.y * 2 - 1); // 转换坐标到[-1, 1]
+            const z = -landmark.z; // z 坐标直接使用
+
+            console.log(`Point ${index}: (${x}, ${y}, ${z})`); // Debug log
 
             const point = document.createElement('a-sphere');
             point.setAttribute('position', `${x} ${y} ${z}`);
@@ -61,6 +64,8 @@
             handPointsEntity.appendChild(point);
           });
         }
+      } else {
+        console.log('No hand landmarks detected'); // Debug log
       }
     }
   </script>
