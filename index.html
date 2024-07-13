@@ -69,7 +69,7 @@
         // 加載GLB模型
         const loader = new THREE.GLTFLoader();
         let model;
-        loader.load('asstes/ring.glb', function(gltf) {
+        loader.load('assets/ring.glb', function(gltf) {
             model = gltf.scene;
             model.scale.set(0.05, 0.05, 0.05); // 調整模型大小
             scene.add(model);
