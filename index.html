@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Web AR Hand Tracking</title>
+  <title>00</title>
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
   <script src="https://rawgit.com/jeromeetienne/AR.js/master/aframe/build/aframe-ar.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands"></script>
@@ -52,7 +52,7 @@
           landmarks.forEach((landmark, index) => {
             const x = (landmark.x * 2 - 1); // 转换坐标到[-1, 1]
             const y = -(landmark.y * 2 - 1); // 转换坐标到[-1, 1]
-            const z = -landmark.z; // z 坐标直接使用
+            const z = -landmark.z;-10 // z 坐标直接使用
 
             console.log(`Point ${index}: (${x}, ${y}, ${z})`); // Debug log
 
