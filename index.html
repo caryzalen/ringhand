@@ -1,86 +1,66 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Virtual Ring Try-On</title>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
-</head>
-<body>
-    <a-scene embedded arjs='sourceType: webcam; debugUIEnabled: false;'>
-        <a-assets>
-            <a-asset-item id="ring-model" src="assets/ring.glb"></a-asset-item>
-        </a-assets>
-        
-        <a-entity id="camera" camera look-controls></a-entity>
-        <a-entity id="ring" gltf-model="#ring-model" position="0 0 -1" rotation="0 0 0" scale="0.01 0.01 0.01"></a-entity>
+  </head>
+  <body>
+    <a-scene>
+      <a-entity camera></a-entity>
     </a-scene>
-
-    <video class="input_video" style="display:none;"></video>
-
     <script>
-        const videoElement = document.querySelector('.input_video');
-        const ring = document.querySelector('#ring');
+      const videoElement = document.createElement('video');
+      document.body.appendChild(videoElement);
 
-        const hands = new Hands({
-            locateFile: (file) => {
-                return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
-            }
-        });
-
-        hands.setOptions({
-            maxNumHands: 1,
-            modelComplexity: 1,
-            minDetectionConfidence: 0.5,
-            minTrackingConfidence: 0.5
-        });
-
-        function onResults(results) {
-            // Remove existing markers
-            const markers = document.querySelectorAll('.landmark-marker');
-            markers.forEach(marker => marker.parentNode.removeChild(marker));
-
-            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-                let landmarks = results.multiHandLandmarks[0];
-
-                // Assuming the ring should be placed on the middle finger; adjust index accordingly
-                const middleFinger = landmarks[12]; // Middle finger tip index in landmarks
-
-                // Update ring position based on the middle finger tip position
-                ring.setAttribute('position', {
-                    x: middleFinger.x * 2 - 1,
-                    y: middleFinger.y * -2 + 1,
-                    z: -middleFinger.z * 2
-                });
-
-                // Add visual markers for debugging
-                landmarks.forEach((landmark, index) => {
-                    let marker = document.createElement('a-sphere');
-                    marker.setAttribute('class', 'landmark-marker');
-                    marker.setAttribute('color', 'green');
-                    marker.setAttribute('radius', '0.01');
-                    marker.setAttribute('position', {
-                        x: landmark.x * 2 - 1,
-                        y: landmark.y * -2 + 1,
-                        z: -landmark.z * 2
-                    });
-                    document.querySelector('a-scene').appendChild(marker);
-                });
-            }
+      const hands = new Hands({
+        locateFile: (file) => {
+          return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
         }
+      });
 
-        hands.onResults(onResults);
+      hands.setOptions({
+        maxNumHands: 1,
+        minDetectionConfidence: 0.5,
+        minTrackingConfidence: 0.5
+      });
 
-        const camera = new Camera(videoElement, {
-            onFrame: async () => {
-                await hands.send({image: videoElement});
-            },
-            width: 1280,
-            height: 720
-        });
-        camera.start();
+      hands.onResults(onResults);
+
+      const camera = new Camera(videoElement, {
+        onFrame: async () => {
+          await hands.send({ image: videoElement });
+        },
+        width: 640,
+        height: 480
+      });
+      camera.start();
+
+      function onResults(results) {
+        if (results.multiHandLandmarks) {
+          results.multiHandLandmarks.forEach((landmarks) => {
+            landmarks.forEach((landmark) => {
+              const x = landmark.x * 2 - 1;
+              const y = 1 - landmark.y * 2;
+              createOrUpdateDot(x, y);
+            });
+          });
+        }
+      }
+
+      function createOrUpdateDot(x, y, z = -5) {
+        let dot = document.getElementById('hand-dot');
+        if (!dot) {
+          dot = document.createElement('a-sphere');
+          dot.setAttribute('id', 'hand-dot');
+          dot.setAttribute('radius', '0.05');
+          dot.setAttribute('color', 'green');
+          document.querySelector('a-scene').appendChild(dot);
+        }
+        dot.setAttribute('position', { x: (x - 0.5) * 10, y: (y - 0.5) * 10, z: z });
+      }
     </script>
-</body>
+  </body>
 </html>
