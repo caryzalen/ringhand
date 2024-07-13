@@ -3,28 +3,75 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>01</title>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.min.js"></script>
+    <title>Virtual Ring Try-On</title>
+    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
 </head>
 <body>
-    <div style="position: relative;" id="camera-container"></div>
+    <a-scene embedded arjs='sourceType: webcam; debugUIEnabled: false;'>
+        <a-assets>
+            <a-asset-item id="ring-model" src="assets/ring.glb"></a-asset-item>
+        </a-assets>
+        
+        <a-entity id="camera" camera look-controls></a-entity>
+        <a-entity id="ring" gltf-model="#ring-model" position="0 0 -1" rotation="0 0 0" scale="0.01 0.01 0.01"></a-entity>
+    </a-scene>
+
+    <video class="input_video" style="display:none;"></video>
 
     <script>
-        const videoElement = document.createElement('video');
-        videoElement.style.position = 'absolute';
-        videoElement.style.zIndex = '-1';
-        document.getElementById('camera-container').appendChild(videoElement);
+        const videoElement = document.querySelector('.input_video');
+        const ring = document.querySelector('#ring');
 
-        const hands = new Hands({locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`});
+        const hands = new Hands({
+            locateFile: (file) => {
+                return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+            }
+        });
+
         hands.setOptions({
             maxNumHands: 1,
             modelComplexity: 1,
             minDetectionConfidence: 0.5,
             minTrackingConfidence: 0.5
         });
+
+        function onResults(results) {
+            // Remove existing markers
+            const markers = document.querySelectorAll('.landmark-marker');
+            markers.forEach(marker => marker.parentNode.removeChild(marker));
+
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                let landmarks = results.multiHandLandmarks[0];
+
+                // Assuming the ring should be placed on the middle finger; adjust index accordingly
+                const middleFinger = landmarks[12]; // Middle finger tip index in landmarks
+
+                // Update ring position based on the middle finger tip position
+                ring.setAttribute('position', {
+                    x: middleFinger.x * 2 - 1,
+                    y: middleFinger.y * -2 + 1,
+                    z: -middleFinger.z * 2
+                });
+
+                // Add visual markers for debugging
+                landmarks.forEach((landmark, index) => {
+                    let marker = document.createElement('a-sphere');
+                    marker.setAttribute('class', 'landmark-marker');
+                    marker.setAttribute('color', 'green');
+                    marker.setAttribute('radius', '0.01');
+                    marker.setAttribute('position', {
+                        x: landmark.x * 2 - 1,
+                        y: landmark.y * -2 + 1,
+                        z: -landmark.z * 2
+                    });
+                    document.querySelector('a-scene').appendChild(marker);
+                });
+            }
+        }
+
+        hands.onResults(onResults);
 
         const camera = new Camera(videoElement, {
             onFrame: async () => {
@@ -34,37 +81,6 @@
             height: 720
         });
         camera.start();
-
-        const scene = new THREE.Scene();
-        const cameraThreeJS = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ alpha: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        document.body.appendChild(renderer.domElement);
-        cameraThreeJS.position.z = 5;
-
-        const loader = new THREE.GLTFLoader();
-        let ringMesh;
-        loader.load('assets/ring.glb', (gltf) => {
-            ringMesh = gltf.scene;
-            scene.add(ringMesh);
-            ringMesh.position.z = -5; // Adjust based on your model
-        });
-
-        function animate() {
-            requestAnimationFrame(animate);
-            renderer.render(scene, cameraThreeJS);
-        }
-        animate();
-
-        hands.onResults((results) => {
-            if (results.multiHandLandmarks && ringMesh) {
-                const landmarks = results.multiHandLandmarks[0];
-                const indexFinger = landmarks[8]; // Index for tip of the middle finger
-                ringMesh.position.x = (indexFinger.x - 0.5) * 2;
-                ringMesh.position.y = -(indexFinger.y - 0.5) * 2;
-                ringMesh.position.z = (indexFinger.z || -0.5) * 2;
-            }
-        });
     </script>
 </body>
 </html>
