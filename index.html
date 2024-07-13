@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>01</title>
+  <title>Web AR Hand Tracking</title>
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
   <script src="https://rawgit.com/jeromeetienne/AR.js/master/aframe/build/aframe-ar.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands"></script>
@@ -44,21 +44,22 @@
 
     function onResults(results) {
       const handPointsEntity = document.getElementById('hand-points');
-      handPointsEntity.innerHTML = '';
+      handPointsEntity.innerHTML = ''; // 清空之前的点
 
       if (results.multiHandLandmarks) {
         for (const landmarks of results.multiHandLandmarks) {
-          for (const landmark of landmarks) {
-            const x = landmark.x * 2 - 1;
-            const y = -(landmark.y * 2 - 1);
-            const z = -landmark.z;
+          landmarks.forEach((landmark, index) => {
+            const x = (landmark.x - 0.5) * 2; // 转换坐标到[-1, 1]
+            const y = -(landmark.y - 0.5) * 2; // 转换坐标到[-1, 1]
+            const z = -landmark.z; // z 坐标直接使用
 
             const point = document.createElement('a-sphere');
             point.setAttribute('position', `${x} ${y} ${z}`);
-            point.setAttribute('radius', '0.01');
+            point.setAttribute('radius', '0.02'); // 调整点的大小
             point.setAttribute('color', 'green');
+            point.setAttribute('id', `point-${index}`);
             handPointsEntity.appendChild(point);
-          }
+          });
         }
       }
     }
