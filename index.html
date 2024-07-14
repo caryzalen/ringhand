@@ -63,7 +63,7 @@
         // 初始化 Three.js 场景
         const scene = new THREE.Scene();
         const camera3D = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera3D.position.z = 2;
+        camera3D.position.z = 4;
 
         const renderer = new THREE.WebGLRenderer({ alpha: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -86,7 +86,7 @@
                     const landmark = landmarks[i];
                     spheres[i].position.x = (landmark.x * 2 - 1) * (window.innerWidth / window.innerHeight);
                     spheres[i].position.y = -(landmark.y * 2 - 1);
-                    spheres[i].position.z = -landmark.z * 4;
+                    spheres[i].position.z = -landmark.z * 2;
                 }
             }
 
