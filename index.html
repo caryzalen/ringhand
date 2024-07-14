@@ -3,56 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web AR Hand Tracking</title>
-    <style>
-        body { margin: 0; overflow: hidden; }
-        canvas { position: absolute; top: 0; left: 0; }
-        video { display: none; }
-    </style>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands"></script>
-    <script src="https://threejs.org/build/three.js"></script>
+    <title>01</title>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hand_tracking/hand_tracking.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
 </head>
 <body>
-    <video id="video" autoplay playsinline></video>
+    <video id="video" autoplay></video>
+    <canvas id="output_canvas"></canvas>
     <script>
-        // 引入Three.js和MediaPipe
-        const video = document.getElementById('video');
+        const videoElement = document.getElementById('video');
+        const canvasElement = document.getElementById('output_canvas');
+        const canvasCtx = canvasElement.getContext('2d');
 
-        async function setupCamera() {
-            const stream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: 'environment' }
-            });
-            video.srcObject = stream;
-            await new Promise((resolve) => (video.onloadedmetadata = resolve));
-        }
-
-        // 初始化Three.js
+        // Initialize Three.js
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer();
+        const renderer = new THREE.WebGLRenderer({canvas: canvasElement});
         renderer.setSize(window.innerWidth, window.innerHeight);
-        document.body.appendChild(renderer.domElement);
 
-        const geometry = new THREE.SphereGeometry(0.01, 32, 32);
-        const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-        const points = [];
+        const handModel = new THREE.SphereGeometry(0.02, 32, 32);
+        const handMaterial = new THREE.MeshBasicMaterial({color: 0x00ff00});
+        const handSpheres = [];
 
         for (let i = 0; i < 21; i++) {
-            const sphere = new THREE.Mesh(geometry, material);
+            const sphere = new THREE.Mesh(handModel, handMaterial);
             scene.add(sphere);
-            points.push(sphere);
+            handSpheres.push(sphere);
         }
 
-        camera.position.z = 1;
+        camera.position.z = 5;
 
-        // 初始化MediaPipe手部追蹤
+        // Initialize Mediapipe Hand Tracking
         const hands = new Hands({
-            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hand_tracking/${file}`
         });
-
         hands.setOptions({
             maxNumHands: 1,
-            modelComplexity: 1,
             minDetectionConfidence: 0.5,
             minTrackingConfidence: 0.5
         });
@@ -60,33 +47,27 @@
         hands.onResults(onResults);
 
         function onResults(results) {
-            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+            if (results.multiHandLandmarks.length > 0) {
                 const landmarks = results.multiHandLandmarks[0];
                 for (let i = 0; i < landmarks.length; i++) {
-                    const landmark = landmarks[i];
-                    points[i].position.set(landmark.x - 0.5, -landmark.y + 0.5, -landmark.z);
+                    const x = landmarks[i].x * 2 - 1;
+                    const y = -landmarks[i].y * 2 + 1;
+                    const z = -landmarks[i].z;
+                    handSpheres[i].position.set(x, y, z);
                 }
             }
-        }
-
-        // 設置MediaPipe相機
-        const mpCamera = new Camera(video, {
-            onFrame: async () => {
-                await hands.send({ image: video });
-            },
-            width: 1280,
-            height: 720
-        });
-
-        setupCamera().then(() => {
-            mpCamera.start();
-            animate();
-        });
-
-        function animate() {
-            requestAnimationFrame(animate);
             renderer.render(scene, camera);
         }
+
+        const cameraUtils = new CameraUtils.Camera(videoElement, {
+            onFrame: async () => {
+                await hands.send({image: videoElement});
+            },
+            width: 640,
+            height: 480
+        });
+
+        cameraUtils.start();
     </script>
 </body>
 </html>
