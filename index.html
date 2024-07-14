@@ -66,7 +66,7 @@
         // 加载3D模型
         const loader = new THREE.GLTFLoader();
         let ring;
-        loader.load('assets.glb', (gltf) => {
+        loader.load('assets/ring.glb', (gltf) => {
             ring = gltf.scene;
             scene.add(ring);
         });
