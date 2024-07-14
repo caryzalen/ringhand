@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>02</title>
+    <title>Web AR Hand Tracking</title>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
@@ -24,58 +24,71 @@
     </style>
 </head>
 <body>
+    <video id="video" playsinline></video>
     <script>
-        const videoElement = document.createElement('video');
-        const canvasElement = document.createElement('canvas');
-        const canvasCtx = canvasElement.getContext('2d');
+        const videoElement = document.getElementById('video');
 
-        document.body.appendChild(videoElement);
-        document.body.appendChild(canvasElement);
-
+        // 初始化 Mediapipe Hands 模組
         const hands = new Hands({
             locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
         });
 
+        hands.setOptions({
+            maxNumHands: 1,
+            modelComplexity: 1,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5
+        });
+
+        hands.onResults(onResults);
+
+        // 初始化攝像頭
         const camera = new Camera(videoElement, {
             onFrame: async () => {
-                await hands.send({image: videoElement});
+                await hands.send({ image: videoElement });
             },
             width: 1280,
             height: 720
         });
         camera.start();
 
+        // 初始化 Three.js 場景
         const scene = new THREE.Scene();
         const camera3D = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({canvas: canvasElement, alpha: true});
+        camera3D.position.z = 5;
+
+        const renderer = new THREE.WebGLRenderer({ alpha: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
+        // 創建 3D 球
+        const geometry = new THREE.SphereGeometry(0.05, 32, 32);
+        const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
         const spheres = [];
-        const geometry = new THREE.SphereGeometry(0.02, 32, 32);
-        const material = new THREE.MeshBasicMaterial({color: 0x00ff00});
-
         for (let i = 0; i < 21; i++) {
             const sphere = new THREE.Mesh(geometry, material);
             scene.add(sphere);
             spheres.push(sphere);
         }
 
-        hands.onResults((results) => {
-            if (results.multiHandLandmarks) {
-                for (let i = 0; i < results.multiHandLandmarks.length; i++) {
-                    const landmarks = results.multiHandLandmarks[i];
-                    for (let j = 0; j < landmarks.length; j++) {
-                        const x = landmarks[j].x * window.innerWidth;
-                        const y = landmarks[j].y * window.innerHeight;
-                        const z = landmarks[j].z;
-
-                        spheres[j].position.set(x, y, z);
-                    }
+        function onResults(results) {
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                for (let i = 0; i < results.multiHandLandmarks[0].length; i++) {
+                    const landmark = results.multiHandLandmarks[0][i];
+                    spheres[i].position.x = (landmark.x - 0.5) * 2;
+                    spheres[i].position.y = -(landmark.y - 0.5) * 2;
+                    spheres[i].position.z = -landmark.z;
                 }
             }
 
+            // 更新渲染
             renderer.render(scene, camera3D);
+        }
+
+        window.addEventListener('resize', () => {
+            camera3D.aspect = window.innerWidth / window.innerHeight;
+            camera3D.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
         });
     </script>
 </body>
