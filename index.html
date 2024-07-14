@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>02</title>
+    <title>Web AR Hand Tracking</title>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
@@ -73,9 +73,9 @@
                 const landmarks = results.multiHandLandmarks[0];
 
                 for (let i = 0; i < landmarks.length; i++) {
-                    const x = (landmarks[i].x * 2 - 1) * 1.2;  // Adjust to fit camera view
-                    const y = -(landmarks[i].y * 2 - 1) * 1.2;
-                    const z = landmarks[i].z * -0.2;  // Adjust scale to fit camera view
+                    const x = (landmarks[i].x * 2 - 1) * window.innerWidth / window.innerHeight;
+                    const y = -(landmarks[i].y * 2 - 1);
+                    const z = -landmarks[i].z * 2;  // Using the z-coordinate for depth
                     spheres[i].position.set(x, y, z);
                 }
             }
@@ -92,6 +92,13 @@
             height: 720
         });
         cameraVideo.start();
+
+        // Resize handler
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
     </script>
 </body>
 </html>
