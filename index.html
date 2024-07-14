@@ -3,95 +3,90 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>01</title>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <title>Web AR Hand Tracking</title>
     <style>
-        body {
-            margin: 0;
-            overflow: hidden;
-        }
-        video, canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
+        body { margin: 0; overflow: hidden; }
+        canvas { position: absolute; top: 0; left: 0; }
+        video { display: none; }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands"></script>
+    <script src="https://threejs.org/build/three.js"></script>
 </head>
 <body>
-    <video id="input_video" autoplay></video>
-    <canvas id="output_canvas"></canvas>
+    <video id="video" autoplay playsinline></video>
     <script>
-        const videoElement = document.getElementById('input_video');
-        const canvasElement = document.getElementById('output_canvas');
-        const canvasCtx = canvasElement.getContext('2d');
+        // 引入Three.js和MediaPipe
+        const video = document.getElementById('video');
 
-        // Initialize MediaPipe Hands
+        async function setupCamera() {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: 'environment' }
+            });
+            video.srcObject = stream;
+            await new Promise((resolve) => (video.onloadedmetadata = resolve));
+        }
+
+        // 初始化Three.js
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        const geometry = new THREE.SphereGeometry(0.01, 32, 32);
+        const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+        const points = [];
+
+        for (let i = 0; i < 21; i++) {
+            const sphere = new THREE.Mesh(geometry, material);
+            scene.add(sphere);
+            points.push(sphere);
+        }
+
+        camera.position.z = 1;
+
+        // 初始化MediaPipe手部追蹤
         const hands = new Hands({
             locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
         });
+
         hands.setOptions({
             maxNumHands: 1,
             modelComplexity: 1,
-            minDetectionConfidence: 0.7,
-            minTrackingConfidence: 0.7
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5
         });
 
-        // Initialize Three.js
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ alpha: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.domElement.style.position = 'absolute';
-        renderer.domElement.style.top = '0';
-        renderer.domElement.style.left = '0';
-        document.body.appendChild(renderer.domElement);
-        camera.position.z = 1.5;
+        hands.onResults(onResults);
 
-        const spheres = [];
-        const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-
-        for (let i = 0; i < 21; i++) {
-            const geometry = new THREE.SphereGeometry(0.05, 32, 32);
-            const sphere = new THREE.Mesh(geometry, material);
-            scene.add(sphere);
-            spheres.push(sphere);
-        }
-
-        hands.onResults((results) => {
-            canvasCtx.save();
-            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-            canvasCtx.drawImage(
-                results.image, 0, 0, canvasElement.width, canvasElement.height);
-
+        function onResults(results) {
             if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
                 const landmarks = results.multiHandLandmarks[0];
-
                 for (let i = 0; i < landmarks.length; i++) {
-                    const x = (landmarks[i].x * 2 - 1) * 1.5;  // Adjust to fit camera view
-                    const y = -(landmarks[i].y * 2 - 1) * 1.5;
-                    const z = landmarks[i].z * -0.5;  // Adjust scale to fit camera view
-                    spheres[i].position.set(x, y, z);
+                    const landmark = landmarks[i];
+                    points[i].position.set(landmark.x - 0.5, -landmark.y + 0.5, -landmark.z);
                 }
             }
-            renderer.render(scene, camera);
-            canvasCtx.restore();
-        });
+        }
 
-        // Setup camera
-        const cameraVideo = new Camera(videoElement, {
+        // 設置MediaPipe相機
+        const mpCamera = new Camera(video, {
             onFrame: async () => {
-                await hands.send({ image: videoElement });
+                await hands.send({ image: video });
             },
             width: 1280,
             height: 720
         });
-        cameraVideo.start();
+
+        setupCamera().then(() => {
+            mpCamera.start();
+            animate();
+        });
+
+        function animate() {
+            requestAnimationFrame(animate);
+            renderer.render(scene, camera);
+        }
     </script>
 </body>
 </html>
