@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>05</title>
+    <title>06</title>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
@@ -76,7 +76,7 @@
         // 加载3D模型
         const loader = new THREE.GLTFLoader();
         let model;
-        loader.load('path/to/your/model.glb', (gltf) => {
+        loader.load('assets/ring.glb', (gltf) => {
             model = gltf.scene;
             model.scale.set(0.1, 0.1, 0.1); // 调整模型大小
             scene.add(model);
