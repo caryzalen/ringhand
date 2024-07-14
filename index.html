@@ -76,8 +76,8 @@
             if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
                 for (let i = 0; i < results.multiHandLandmarks[0].length; i++) {
                     const landmark = results.multiHandLandmarks[0][i];
-                    spheres[i].position.x = (landmark.x - 0.5) * 2;
-                    spheres[i].position.y = -(landmark.y - 0.5) * 2;
+                    spheres[i].position.x = landmark.x;
+                    spheres[i].position.y = -landmark.y;
                     spheres[i].position.z = -landmark.z;
                 }
             }
