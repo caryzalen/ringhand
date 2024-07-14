@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>00</title>
+    <title>01</title>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
@@ -21,76 +21,98 @@
             height: 100%;
             object-fit: cover;
         }
+        #errorMessage {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            display: none;
+        }
     </style>
 </head>
 <body>
     <video class="input_video"></video>
     <canvas class="output_canvas"></canvas>
+    <div id="errorMessage">WebGL context creation failed. Please update your browser or use a different device.</div>
     <script>
         const videoElement = document.querySelector('.input_video');
         const canvasElement = document.querySelector('.output_canvas');
         const canvasCtx = canvasElement.getContext('2d');
+        const errorMessage = document.getElementById('errorMessage');
 
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ canvas: canvasElement });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        camera.position.z = 5;
 
-        const handPoints = [];
-        const sphereGeometry = new THREE.SphereGeometry(0.05, 32, 32);
-        const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-
-        for (let i = 0; i < 21; i++) {
-            const sphere = new THREE.Mesh(sphereGeometry, material);
-            scene.add(sphere);
-            handPoints.push(sphere);
+        let renderer;
+        try {
+            renderer = new THREE.WebGLRenderer({ canvas: canvasElement });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            camera.position.z = 5;
+        } catch (e) {
+            console.error("WebGL context creation failed: ", e);
+            errorMessage.style.display = 'block';
         }
 
-        function onResults(results) {
-            canvasCtx.save();
-            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-            canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+        if (renderer) {
+            const handPoints = [];
+            const sphereGeometry = new THREE.SphereGeometry(0.05, 32, 32);
+            const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
 
-            if (results.multiHandLandmarks) {
-                for (const landmarks of results.multiHandLandmarks) {
-                    for (let i = 0; i < landmarks.length; i++) {
-                        const x = (landmarks[i].x * 2 - 1) * camera.aspect;
-                        const y = -landmarks[i].y * 2 + 1;
-                        const z = landmarks[i].z * 2 - 1;
+            for (let i = 0; i < 21; i++) {
+                const sphere = new THREE.Mesh(sphereGeometry, material);
+                scene.add(sphere);
+                handPoints.push(sphere);
+            }
 
-                        handPoints[i].position.set(x, y, z);
+            function onResults(results) {
+                canvasCtx.save();
+                canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+                canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+
+                if (results.multiHandLandmarks) {
+                    for (const landmarks of results.multiHandLandmarks) {
+                        for (let i = 0; i < landmarks.length; i++) {
+                            const x = (landmarks[i].x * 2 - 1) * camera.aspect;
+                            const y = -landmarks[i].y * 2 + 1;
+                            const z = landmarks[i].z * 2 - 1;
+
+                            handPoints[i].position.set(x, y, z);
+                        }
                     }
                 }
+
+                renderer.render(scene, camera);
+                canvasCtx.restore();
             }
 
-            renderer.render(scene, camera);
-            canvasCtx.restore();
+            const hands = new Hands({
+                locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+            });
+            hands.setOptions({
+                maxNumHands: 1,
+                minDetectionConfidence: 0.5,
+                minTrackingConfidence: 0.5
+            });
+            hands.onResults(onResults);
+
+            const cameraUtils = new CameraUtils.Camera(videoElement, {
+                onFrame: async () => {
+                    await hands.send({ image: videoElement });
+                }
+            });
+
+            cameraUtils.start();
+
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
         }
-
-        const hands = new Hands({
-            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
-        });
-        hands.setOptions({
-            maxNumHands: 1,
-            minDetectionConfidence: 0.5,
-            minTrackingConfidence: 0.5
-        });
-        hands.onResults(onResults);
-
-        const cameraUtils = new CameraUtils.Camera(videoElement, {
-            onFrame: async () => {
-                await hands.send({ image: videoElement });
-            }
-        });
-
-        cameraUtils.start();
-
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
     </script>
 </body>
 </html>
