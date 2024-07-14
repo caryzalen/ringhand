@@ -84,9 +84,9 @@
                 const landmarks = results.multiHandLandmarks[0];
                 for (let i = 0; i < landmarks.length; i++) {
                     const landmark = landmarks[i];
-                    spheres[i].position.x = (landmark.x * 2 - 2) * (window.innerWidth / window.innerHeight);
-                    spheres[i].position.y = -(landmark.y * 2 - 2);
-                    spheres[i].position.z = -landmark.z * 2;
+                    spheres[i].position.x = (landmark.x * 2 - 1) * (window.innerWidth / window.innerHeight);
+                    spheres[i].position.y = -(landmark.y * 2 - 1);
+                    spheres[i].position.z = -landmark.z * 4;
                 }
             }
 
