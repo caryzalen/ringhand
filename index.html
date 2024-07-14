@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>03</title>
+    <title>Web</title>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
@@ -118,6 +118,11 @@
                         -landmarks[10].z * scaleFactor
                     );
                     ring.position.copy(pos9).lerp(pos10, 0.5);
+
+                    // 动态调整戒指的大小
+                    const distance = pos9.distanceTo(pos10);
+                    const scale = distance * 10; // 调整比例因子，根据需要进行微调
+                    ring.scale.set(scale, scale, scale);
 
                     // 计算平面的法向量
                     const p0 = new THREE.Vector3(
