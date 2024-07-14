@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>02</title>
+    <title>01</title>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
@@ -24,75 +24,75 @@
     </style>
 </head>
 <body>
-    <video class="input_video"></video>
+    <video id="video" autoplay></video>
+    <canvas id="output_canvas"></canvas>
     <script>
-        const videoElement = document.querySelector('.input_video');
+        const videoElement = document.getElementById('video');
+        const canvasElement = document.getElementById('output_canvas');
+        const canvasCtx = canvasElement.getContext('2d');
 
-        const hands = new Hands({
-            locateFile: (file) => {
-                return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+        // Initialize Three.js
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ canvas: canvasElement, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        camera.position.z = 5;
+
+        const handPoints = [];
+        for (let i = 0; i < 21; i++) {
+            const geometry = new THREE.SphereGeometry(0.05, 32, 32);
+            const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+            const sphere = new THREE.Mesh(geometry, material);
+            scene.add(sphere);
+            handPoints.push(sphere);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        function onResults(results) {
+            canvasCtx.save();
+            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+            canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+
+            if (results.multiHandLandmarks) {
+                for (const landmarks of results.multiHandLandmarks) {
+                    for (let i = 0; i < landmarks.length; i++) {
+                        const x = landmarks[i].x * 2 - 1;
+                        const y = -landmarks[i].y * 2 + 1;
+                        const z = landmarks[i].z * 2 - 1;
+
+                        handPoints[i].position.set(x, y, z);
+                    }
+                }
             }
-        });
 
+            canvasCtx.restore();
+        }
+
+        const hands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
         hands.setOptions({
-            maxNumHands: 2,
-            modelComplexity: 1,
+            maxNumHands: 1,
             minDetectionConfidence: 0.5,
             minTrackingConfidence: 0.5
         });
+        hands.onResults(onResults);
+
+        const cameraUtils = new CameraUtils.Camera(videoElement);
+        cameraUtils.start();
 
         const camera = new Camera(videoElement, {
             onFrame: async () => {
-                await hands.send({image: videoElement});
+                await hands.send({ image: videoElement });
             },
             width: 1280,
             height: 720
         });
         camera.start();
-
-        hands.onResults(onResults);
-
-        // Three.js setup
-        const scene = new THREE.Scene();
-        const camera3D = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer();
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        document.body.appendChild(renderer.domElement);
-
-        const spheres = [];
-
-        for (let i = 0; i < 21; i++) {
-            const geometry = new THREE.SphereGeometry(0.02, 32, 32);
-            const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-            const sphere = new THREE.Mesh(geometry, material);
-            scene.add(sphere);
-            spheres.push(sphere);
-        }
-
-        camera3D.position.z = 2;
-
-        function onResults(results) {
-            if (results.multiHandLandmarks) {
-                for (let hand of results.multiHandLandmarks) {
-                    for (let i = 0; i < hand.length; i++) {
-                        const landmark = hand[i];
-                        spheres[i].position.set(landmark.x * 2 - 1, -landmark.y * 2 + 1, -landmark.z);
-                    }
-                }
-            }
-            renderer.render(scene, camera3D);
-        }
-
-        function resize() {
-            const width = window.innerWidth;
-            const height = window.innerHeight;
-            camera3D.aspect = width / height;
-            camera3D.updateProjectionMatrix();
-            renderer.setSize(width, height);
-        }
-
-        window.addEventListener('resize', resize);
-        resize();
     </script>
 </body>
 </html>
