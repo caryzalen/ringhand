@@ -24,84 +24,75 @@
     </style>
 </head>
 <body>
-    <video id="video" playsinline></video>
+    <video class="input_video"></video>
     <script>
-        const videoElement = document.getElementById('video');
+        const videoElement = document.querySelector('.input_video');
 
-        // 初始化 Mediapipe Hands 模組
         const hands = new Hands({
-            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+            locateFile: (file) => {
+                return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+            }
         });
 
         hands.setOptions({
-            maxNumHands: 1,
+            maxNumHands: 2,
             modelComplexity: 1,
             minDetectionConfidence: 0.5,
             minTrackingConfidence: 0.5
         });
 
-        hands.onResults(onResults);
-
-        // 初始化攝像頭
         const camera = new Camera(videoElement, {
             onFrame: async () => {
-                await hands.send({ image: videoElement });
+                await hands.send({image: videoElement});
             },
             width: 1280,
-            height: 720,
-            facingMode: 'environment'
+            height: 720
         });
         camera.start();
 
-        // 初始化 Three.js 場景
+        hands.onResults(onResults);
+
+        // Three.js setup
         const scene = new THREE.Scene();
         const camera3D = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera3D.position.z = 5;
-
-        const renderer = new THREE.WebGLRenderer({ alpha: true });
+        const renderer = new THREE.WebGLRenderer();
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
-        // 創建 3D 球的材料
-        const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
         const spheres = [];
 
-        function createSphere() {
-            const geometry = new THREE.SphereGeometry(0.1, 32, 32);
+        for (let i = 0; i < 21; i++) {
+            const geometry = new THREE.SphereGeometry(0.02, 32, 32);
+            const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
             const sphere = new THREE.Mesh(geometry, material);
             scene.add(sphere);
-            return sphere;
+            spheres.push(sphere);
         }
 
-        for (let i = 0; i < 21; i++) {
-            spheres.push(createSphere());
-        }
-
-        const scaleFactor = 2; // 设置缩放系数
+        camera3D.position.z = 2;
 
         function onResults(results) {
-            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-                for (let i = 0; i < results.multiHandLandmarks[0].length; i++) {
-                    const landmark = results.multiHandLandmarks[0][i];
-                    spheres[i].position.x = (landmark.x - 0.5) * scaleFactor * 2;
-                    spheres[i].position.y = -(landmark.y - 0.5) * scaleFactor * 2;
-                    spheres[i].position.z = -landmark.z * scaleFactor;
-
-                    // 根据z坐标调整球的大小，z值越小球越大，z值越大球越小
-                    const distanceScale = 1 - landmark.z; // 假设landmark.z在0到1之间变化
-                    spheres[i].scale.set(distanceScale, distanceScale, distanceScale);
+            if (results.multiHandLandmarks) {
+                for (let hand of results.multiHandLandmarks) {
+                    for (let i = 0; i < hand.length; i++) {
+                        const landmark = hand[i];
+                        spheres[i].position.set(landmark.x * 2 - 1, -landmark.y * 2 + 1, -landmark.z);
+                    }
                 }
             }
-
-            // 更新渲染
             renderer.render(scene, camera3D);
         }
 
-        window.addEventListener('resize', () => {
-            camera3D.aspect = window.innerWidth / window.innerHeight;
+        function resize() {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            camera3D.aspect = width / height;
             camera3D.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
+            renderer.setSize(width, height);
+        }
+
+        window.addEventListener('resize', resize);
+        resize();
     </script>
 </body>
 </html>
