@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>03</title>
+    <title>02</title>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
@@ -63,7 +63,7 @@
         document.body.appendChild(renderer.domElement);
 
         // 創建 3D 球
-        const geometry = new THREE.SphereGeometry(0.05, 32, 32);
+        const geometry = new THREE.SphereGeometry(0.1, 32, 32); // 增加球的大小
         const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
         const spheres = [];
         for (let i = 0; i < 21; i++) {
@@ -72,13 +72,15 @@
             spheres.push(sphere);
         }
 
+        const scaleFactor = 2; // 设置缩放系数
+
         function onResults(results) {
             if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
                 for (let i = 0; i < results.multiHandLandmarks[0].length; i++) {
                     const landmark = results.multiHandLandmarks[0][i];
-                    spheres[i].position.x = (landmark.x - 0.5) * 2;
-                    spheres[i].position.y = -(landmark.y - 0.5) * 2;
-                    spheres[i].position.z = -landmark.z;
+                    spheres[i].position.x = (landmark.x - 0.5) * scaleFactor * 2;
+                    spheres[i].position.y = -(landmark.y - 0.5) * scaleFactor * 2;
+                    spheres[i].position.z = -landmark.z * scaleFactor;
                 }
             }
 
