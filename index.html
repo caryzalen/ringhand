@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web AR Hand Tracking</title>
+    <title>01</title>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
@@ -48,7 +48,8 @@
                 await hands.send({ image: videoElement });
             },
             width: 1280,
-            height: 720
+            height: 720,
+            facingMode: 'environment'
         });
         camera.start();
 
