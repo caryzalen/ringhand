@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>04</title>
+    <title>05</title>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
@@ -98,8 +98,8 @@
                 // 将模型放置在中指的位置（假设中指的点索引为9）
                 if (model) {
                     const middleFingerLandmark = landmarks[9];
-                    model.position.x = (middleFingerLandmark.x - 0.5) * scaleFactor * 2;
-                    model.position.y = -(middleFingerLandmark.y - 0.5) * scaleFactor * 2;
+                    model.position.x = (middleFingerLandmark.x - 0.5) * scaleFactor * 2.2;
+                    model.position.y = -(middleFingerLandmark.y - 0.5) * scaleFactor * 3.8;
                     model.position.z = -middleFingerLandmark.z * scaleFactor;
 
                     // 计算旋转
