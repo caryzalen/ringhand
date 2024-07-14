@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>01</title>
+    <title>02</title>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
@@ -79,10 +79,6 @@
         loader.load('assets/ring.glb', (gltf) => {
             ring = gltf.scene;
             ring.scale.set(0.05, 0.05, 0.05); // 调整模型大小
-
-            // 设置模型初始方向
-            ring.rotation.set(Math.PI / 90, 90, 90); // 例如，设置初始方向为绕X轴旋转90度
-
             scene.add(ring);
         });
 
@@ -120,7 +116,7 @@
                     const angleY = Math.atan2(dx, dz);
                     const angleZ = Math.atan2(dy, dx);
 
-                    ring.rotation.set(angleX, angleY, angleZ);
+                    ring.rotation.set(angleX, angleY + 90, angleZ);
                 }
             }
 
