@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>01</title>
+    <title>Web AR Hand Tracking</title>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
@@ -24,75 +24,62 @@
     </style>
 </head>
 <body>
-    <video id="video" autoplay></video>
-    <canvas id="output_canvas"></canvas>
+    <video id="input_video" autoplay></video>
     <script>
-        const videoElement = document.getElementById('video');
-        const canvasElement = document.getElementById('output_canvas');
-        const canvasCtx = canvasElement.getContext('2d');
+        const videoElement = document.getElementById('input_video');
+
+        // Initialize MediaPipe Hands
+        const hands = new Hands({
+            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+        });
+        hands.setOptions({
+            maxNumHands: 1,
+            modelComplexity: 1,
+            minDetectionConfidence: 0.7,
+            minTrackingConfidence: 0.7
+        });
 
         // Initialize Three.js
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ canvas: canvasElement, alpha: true });
+        const renderer = new THREE.WebGLRenderer();
         renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
         camera.position.z = 5;
 
-        const handPoints = [];
+        const spheres = [];
+        const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+
         for (let i = 0; i < 21; i++) {
             const geometry = new THREE.SphereGeometry(0.05, 32, 32);
-            const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
             const sphere = new THREE.Mesh(geometry, material);
             scene.add(sphere);
-            handPoints.push(sphere);
+            spheres.push(sphere);
         }
 
-        function animate() {
-            requestAnimationFrame(animate);
-            renderer.render(scene, camera);
-        }
+        hands.onResults((results) => {
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                const landmarks = results.multiHandLandmarks[0];
 
-        animate();
-
-        function onResults(results) {
-            canvasCtx.save();
-            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-            canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
-
-            if (results.multiHandLandmarks) {
-                for (const landmarks of results.multiHandLandmarks) {
-                    for (let i = 0; i < landmarks.length; i++) {
-                        const x = landmarks[i].x * 2 - 1;
-                        const y = -landmarks[i].y * 2 + 1;
-                        const z = landmarks[i].z * 2 - 1;
-
-                        handPoints[i].position.set(x, y, z);
-                    }
+                for (let i = 0; i < landmarks.length; i++) {
+                    const x = landmarks[i].x * 2 - 1;
+                    const y = -landmarks[i].y * 2 + 1;
+                    const z = landmarks[i].z * -1;
+                    spheres[i].position.set(x, y, z);
                 }
             }
-
-            canvasCtx.restore();
-        }
-
-        const hands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
-        hands.setOptions({
-            maxNumHands: 1,
-            minDetectionConfidence: 0.5,
-            minTrackingConfidence: 0.5
+            renderer.render(scene, camera);
         });
-        hands.onResults(onResults);
 
-        const cameraUtils = new CameraUtils.Camera(videoElement);
-        cameraUtils.start();
-
-        const camera = new Camera(videoElement, {
+        // Setup camera
+        const cameraVideo = new Camera(videoElement, {
             onFrame: async () => {
                 await hands.send({ image: videoElement });
             },
             width: 1280,
             height: 720
         });
-        camera.start();
+        cameraVideo.start();
     </script>
 </body>
 </html>
