@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>02</title>
+    <title>03</title>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
@@ -78,27 +78,30 @@
         let ring;
         loader.load('assets/ring.glb', (gltf) => {
             ring = gltf.scene;
+            ring.scale.set(0.1, 0.1, 0.1); // 调整模型大小
             scene.add(ring);
         });
 
         const scaleFactor = 2; // 设置缩放系数
 
-        function computeCentroid(points) {
-            let centroid = new THREE.Vector3(0, 0, 0);
-            points.forEach(point => {
-                centroid.add(point);
-            });
-            centroid.divideScalar(points.length);
-            return centroid;
+        function computeDistance(landmark) {
+            // 计算手部关键点与相机的距离（使用Z轴的值）
+            return landmark.z;
         }
 
         function onResults(results) {
             if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
                 const landmarks = results.multiHandLandmarks[0];
+                const referenceDistance = computeDistance(landmarks[0]);
 
-                // 更新球的位置
+                // 更新球的位置和大小
                 for (let i = 0; i < landmarks.length; i++) {
                     const landmark = landmarks[i];
+                    const distance = computeDistance(landmark);
+
+                    const size = (referenceDistance / distance) * 0.1; // 根据距离调整大小
+                    spheres[i].scale.set(size, size, size);
+
                     spheres[i].position.x = (landmark.x - 0.5) * scaleFactor * 2;
                     spheres[i].position.y = -(landmark.y - 0.5) * scaleFactor * 2;
                     spheres[i].position.z = -landmark.z * scaleFactor;
@@ -118,7 +121,7 @@
                     );
                     ring.position.copy(pos9).lerp(pos10, 0.5);
 
-                    // 计算手部平面的法向量
+                    // 计算平面的法向量
                     const p0 = new THREE.Vector3(
                         (landmarks[0].x - 0.5) * scaleFactor * 2,
                         -(landmarks[0].y - 0.5) * scaleFactor * 2,
@@ -148,12 +151,6 @@
                     // 设置模型旋转
                     const quaternion = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), normal);
                     ring.setRotationFromQuaternion(quaternion);
-
-                    // 调整戒指大小基于距离
-                    const distance = pos9.distanceTo(pos10);
-                    const baseScale = 0.1; // 戒指的基准缩放比例
-                    const scale = baseScale * (1 / landmarks[9].z); // 根据深度值调整比例
-                    ring.scale.set(scale, scale, scale);
 
                     // 微调戒指位置和旋转
                     const positionOffset = new THREE.Vector3(0, 0, 0); // 根据需要调整位置偏移
