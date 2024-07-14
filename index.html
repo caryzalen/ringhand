@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>01</title>
+    <title>Web AR Hand Tracking</title>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
@@ -25,8 +25,11 @@
 </head>
 <body>
     <video id="input_video" autoplay></video>
+    <canvas id="output_canvas"></canvas>
     <script>
         const videoElement = document.getElementById('input_video');
+        const canvasElement = document.getElementById('output_canvas');
+        const canvasCtx = canvasElement.getContext('2d');
 
         // Initialize MediaPipe Hands
         const hands = new Hands({
@@ -42,10 +45,13 @@
         // Initialize Three.js
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer();
+        const renderer = new THREE.WebGLRenderer({ alpha: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.domElement.style.position = 'absolute';
+        renderer.domElement.style.top = '0';
+        renderer.domElement.style.left = '0';
         document.body.appendChild(renderer.domElement);
-        camera.position.z = 5;
+        camera.position.z = 2;
 
         const spheres = [];
         const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
@@ -58,23 +64,23 @@
         }
 
         hands.onResults((results) => {
+            canvasCtx.save();
+            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+            canvasCtx.drawImage(
+                results.image, 0, 0, canvasElement.width, canvasElement.height);
+
             if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
                 const landmarks = results.multiHandLandmarks[0];
 
                 for (let i = 0; i < landmarks.length; i++) {
-                    const x = landmarks[i].x * 2 - 1;
-                    const y = -landmarks[i].y * 2 + 1;
-                    const z = landmarks[i].z * -1;
-
-                    // Update sphere position
+                    const x = (landmarks[i].x * 2 - 1) * 1.2;  // Adjust to fit camera view
+                    const y = -(landmarks[i].y * 2 - 1) * 1.2;
+                    const z = landmarks[i].z * -0.2;  // Adjust scale to fit camera view
                     spheres[i].position.set(x, y, z);
-
-                    // Adjust sphere size based on z-value
-                    const scale = 0.1 / (z + 1); // Adjust scale factor as needed
-                    spheres[i].scale.set(scale, scale, scale);
                 }
             }
             renderer.render(scene, camera);
+            canvasCtx.restore();
         });
 
         // Setup camera
