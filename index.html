@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>02</title>
+    <title>03</title>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
@@ -78,7 +78,8 @@
         let ring;
         loader.load('assets/ring.glb', (gltf) => {
             ring = gltf.scene;
-            ring.scale.set(0.05, 0.05, 0.05); // 调整模型大小
+            ring.scale.set(0.02, 0.02, 0.02); // 调整模型大小
+            ring.rotation.set(0, 90, 02);
             scene.add(ring);
         });
 
