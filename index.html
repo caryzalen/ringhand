@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>03</title>
+    <title>04</title>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
@@ -62,8 +62,8 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
-        // 創建 3D 球的幾何和材質
-        const geometry = new THREE.SphereGeometry(0.05, 32, 32); 
+        // 創建 3D 球
+        const geometry = new THREE.SphereGeometry(0.1, 32, 32); // 增加球的大小
         const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
         const spheres = [];
         for (let i = 0; i < 21; i++) {
@@ -76,18 +76,11 @@
 
         function onResults(results) {
             if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-                const handLandmarks = results.multiHandLandmarks[0];
-                for (let i = 0; i < handLandmarks.length; i++) {
-                    const landmark = handLandmarks[i];
-                    const distance = Math.abs(landmark.z * scaleFactor);
-                    const sphereSize = 1 / (distance + 1); // 根据距离动态调整球的大小
-
+                for (let i = 0; i < results.multiHandLandmarks[0].length; i++) {
+                    const landmark = results.multiHandLandmarks[0][i];
                     spheres[i].position.x = (landmark.x - 0.5) * scaleFactor * 2.2;
                     spheres[i].position.y = -(landmark.y - 0.5) * scaleFactor * 3.8;
                     spheres[i].position.z = -landmark.z * scaleFactor;
-
-                    // 动态调整球的大小
-                    spheres[i].scale.set(sphereSize, sphereSize, sphereSize);
                 }
             }
 
