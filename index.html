@@ -77,9 +77,9 @@
                 const landmarks = results.multiHandLandmarks[0];
 
                 // 获取视频元素的宽高
-                const videoWidth = videoElement.videoWidth * 2;
-                const videoHeight = videoElement.videoHeight * 2;
-                const videoAspect = videoWidth / videoHeight;
+                const videoWidth = videoElement.videoWidth * 4;
+                const videoHeight = videoElement.videoHeight * 4;
+                const videoAspect = videoWidth / videoHeight * 2;
 
                 // 获取渲染器的宽高
                 const rendererWidth = renderer.domElement.width;
