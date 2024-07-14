@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>04</title>
+    <title>05</title>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
@@ -76,7 +76,7 @@
         // 加载3D模型
         const loader = new THREE.GLTFLoader();
         let model;
-        loader.load('path/to/your/model.glb', (gltf) => {
+        loader.load('assets/ring.glb', (gltf) => {
             model = gltf.scene;
             model.scale.set(0.1, 0.1, 0.1); // 调整模型大小
             scene.add(model);
@@ -88,16 +88,16 @@
             if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
                 for (let i = 0; i < results.multiHandLandmarks[0].length; i++) {
                     const landmark = results.multiHandLandmarks[0][i];
-                    spheres[i].position.x = (landmark.x - 0.5) * scaleFactor * 2;
-                    spheres[i].position.y = -(landmark.y - 0.5) * scaleFactor * 2;
+                    spheres[i].position.x = (landmark.x - 0.5) * scaleFactor * 2.2;
+                    spheres[i].position.y = -(landmark.y - 0.5) * scaleFactor * 3.8;
                     spheres[i].position.z = -landmark.z * scaleFactor;
                 }
 
                 // 将模型放置在中指的位置（假设中指的点索引为9）
                 if (model) {
                     const middleFingerLandmark = results.multiHandLandmarks[0][9];
-                    model.position.x = (middleFingerLandmark.x - 0.5) * scaleFactor * 2.2;
-                    model.position.y = -(middleFingerLandmark.y - 0.5) * scaleFactor * 3.8;
+                    model.position.x = (middleFingerLandmark.x - 0.5) * scaleFactor * 2;
+                    model.position.y = -(middleFingerLandmark.y - 0.5) * scaleFactor * 2;
                     model.position.z = -middleFingerLandmark.z * scaleFactor;
                 }
             }
