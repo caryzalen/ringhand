@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web AR Hand Tracking</title>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+    <title>01</title>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4/hands.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.4/camera_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.4/drawing_utils.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         body, html { height: 100%; margin: 0; overflow: hidden; }
@@ -21,7 +21,7 @@
     const canvasCtx = canvasElement.getContext('2d');
 
     const hands = new Hands({
-        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`,
+        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4/${file}`,
     });
 
     hands.setOptions({
@@ -43,9 +43,17 @@
         canvasCtx.restore();
     });
 
+    hands.on('error', (error) => {
+        console.error('Error in Hands solution:', error);
+    });
+
     const camera = new Camera(videoElement, {
         onFrame: async () => {
-            await hands.send({image: videoElement});
+            try {
+                await hands.send({image: videoElement});
+            } catch (error) {
+                console.error('Error sending frame to Hands solution:', error);
+            }
         },
         width: 1280,
         height: 720
