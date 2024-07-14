@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web</title>
+    <title>01</title>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
@@ -63,105 +63,31 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
-        // 創建 3D 球
-        const geometry = new THREE.SphereGeometry(0.1, 32, 32); // 增加球的大小
-        const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-        const spheres = [];
-        for (let i = 0; i < 21; i++) {
-            const sphere = new THREE.Mesh(geometry, material);
-            scene.add(sphere);
-            spheres.push(sphere);
-        }
-
         // 加载3D模型
         const loader = new THREE.GLTFLoader();
         let ring;
         loader.load('assets/ring.glb', (gltf) => {
             ring = gltf.scene;
-            ring.scale.set(0.02, 0.02, 0.02); // 调整模型大小
             scene.add(ring);
         });
 
         const scaleFactor = 2; // 设置缩放系数
 
-        function computeCentroid(points) {
-            let centroid = new THREE.Vector3(0, 0, 0);
-            points.forEach(point => {
-                centroid.add(point);
-            });
-            centroid.divideScalar(points.length);
-            return centroid;
-        }
-
         function onResults(results) {
             if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
                 const landmarks = results.multiHandLandmarks[0];
+                const middleFingerTip = landmarks[12];
 
-                // 更新球的位置
-                for (let i = 0; i < landmarks.length; i++) {
-                    const landmark = landmarks[i];
-                    spheres[i].position.x = (landmark.x - 0.5) * scaleFactor * 2.2;
-                    spheres[i].position.y = -(landmark.y - 0.5) * scaleFactor * 3.8;
-                    spheres[i].position.z = -landmark.z * scaleFactor;
-                }
-
-                // 计算模型位置 (9和10之间)
+                // 更新模型位置
                 if (ring) {
-                    const pos9 = new THREE.Vector3(
-                        (landmarks[9].x - 0.5) * scaleFactor * 2.2,
-                        -(landmarks[9].y - 0.5) * scaleFactor * 3.8,
-                        -landmarks[9].z * scaleFactor
-                    );
-                    const pos10 = new THREE.Vector3(
-                        (landmarks[10].x - 0.5) * scaleFactor * 2.2,
-                        -(landmarks[10].y - 0.5) * scaleFactor * 3.8,
-                        -landmarks[10].z * scaleFactor
-                    );
-                    ring.position.copy(pos9).lerp(pos10, 0.5);
+                    ring.position.x = (middleFingerTip.x - 0.5) * scaleFactor * 2.2;
+                    ring.position.y = -(middleFingerTip.y - 0.5) * scaleFactor * 3.8;
+                    ring.position.z = -middleFingerTip.z * scaleFactor;
 
-                    // 动态调整戒指的大小
-                    const distance = pos9.distanceTo(pos10);
-                    const scale = distance * 10; // 调整比例因子，根据需要进行微调
-                    ring.scale.set(scale, scale, scale);
-
-                    // 计算平面的法向量
-                    const p0 = new THREE.Vector3(
-                        (landmarks[0].x - 0.5) * scaleFactor * 2.2,
-                        -(landmarks[0].y - 0.5) * scaleFactor * 3.8,
-                        -landmarks[0].z * scaleFactor
-                    );
-                    const p5 = new THREE.Vector3(
-                        (landmarks[5].x - 0.5) * scaleFactor * 2.2,
-                        -(landmarks[5].y - 0.5) * scaleFactor * 3.8,
-                        -landmarks[5].z * scaleFactor
-                    );
-                    const p9 = pos9;
-                    const p13 = new THREE.Vector3(
-                        (landmarks[13].x - 0.5) * scaleFactor * 2.2,
-                        -(landmarks[13].y - 0.5) * scaleFactor * 3.8,
-                        -landmarks[13].z * scaleFactor
-                    );
-                    const p17 = new THREE.Vector3(
-                        (landmarks[17].x - 0.5) * scaleFactor * 2.2,
-                        -(landmarks[17].y - 0.5) * scaleFactor * 3.8,
-                        -landmarks[17].z * scaleFactor
-                    );
-
-                    const v1 = new THREE.Vector3().subVectors(p5, p0);
-                    const v2 = new THREE.Vector3().subVectors(p17, p0);
-                    const normal = new THREE.Vector3().crossVectors(v1, v2).normalize();
-
-                    // 设置模型旋转
-                    const quaternion = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), normal);
-                    ring.setRotationFromQuaternion(quaternion);
-
-                    // 微调戒指位置和旋转
-                    const positionOffset = new THREE.Vector3(0, 0, 0); // 根据需要调整位置偏移
-                    const rotationOffset = new THREE.Euler(0, 0, 0); // 根据需要调整旋转偏移
-                    ring.position.add(positionOffset);
-                    ring.rotation.x += rotationOffset.x;
-                    ring.rotation.y += rotationOffset.y;
-                    ring.rotation.z += rotationOffset.z;
+                    // 根据手与摄像头的距离调整模型大小
+                    const baseScale = 0.1; // 基础缩放值
+                    const depthScale = middleFingerTip.z; // 深度缩放值
+                    ring.scale.set(baseScale + depthScale, baseScale + depthScale, baseScale + depthScale);
                 }
             }
 
