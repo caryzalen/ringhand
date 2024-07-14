@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web02</title>
+    <title>Web03</title>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
@@ -77,9 +77,9 @@
                 const landmarks = results.multiHandLandmarks[0];
 
                 // 获取视频元素的宽高
-                const videoWidth = videoElement.videoWidth * 4;
-                const videoHeight = videoElement.videoHeight * 4;
-                const videoAspect = videoWidth / videoHeight * 2;
+                const videoWidth = videoElement.videoWidth;
+                const videoHeight = videoElement.videoHeight;
+                const videoAspect = videoWidth / videoHeight;
 
                 // 获取渲染器的宽高
                 const rendererWidth = renderer.domElement.width;
