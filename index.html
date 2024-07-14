@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>01</title>
+    <title>02</title>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
@@ -13,16 +13,13 @@
             margin: 0;
             overflow: hidden;
         }
-        video {
+        video, canvas {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
             object-fit: cover;
-        }
-        canvas {
-            display: none; /* 隐藏 canvas 以减少 DOM 操作 */
         }
     </style>
 </head>
@@ -38,7 +35,7 @@
 
         hands.setOptions({
             maxNumHands: 1,
-            modelComplexity: 0, // 降低模型复杂度
+            modelComplexity: 1,
             minDetectionConfidence: 0.5,
             minTrackingConfidence: 0.5
         });
@@ -81,19 +78,15 @@
             if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
                 for (let i = 0; i < results.multiHandLandmarks[0].length; i++) {
                     const landmark = results.multiHandLandmarks[0][i];
-                    spheres[i].position.x = (landmark.x - 0.5) * scaleFactor * 2.2;
-                    spheres[i].position.y = -(landmark.y - 0.5) * scaleFactor * 3.8;
+                    spheres[i].position.x = (landmark.x - 0.5) * scaleFactor * 2.3;
+                    spheres[i].position.y = -(landmark.y - 0.5) * scaleFactor * 3.9;
                     spheres[i].position.z = -landmark.z * scaleFactor;
                 }
             }
-        }
 
-        function animate() {
-            requestAnimationFrame(animate);
+            // 更新渲染
             renderer.render(scene, camera3D);
         }
-
-        animate();
 
         window.addEventListener('resize', () => {
             camera3D.aspect = window.innerWidth / window.innerHeight;
