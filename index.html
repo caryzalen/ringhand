@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>07</title>
+    <title>01</title>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
@@ -75,11 +75,11 @@
 
         // 加载3D模型
         const loader = new THREE.GLTFLoader();
-        let model;
-        loader.load('assets/ring.glb', (gltf) => {
-            model = gltf.scene;
-            model.scale.set(0.02, 0.02, 0.02); // 调整模型大小
-            scene.add(model);
+        let ring;
+        loader.load('path/to/your/model.glb', (gltf) => {
+            ring = gltf.scene;
+            ring.scale.set(0.05, 0.05, 0.05); // 调整模型大小
+            scene.add(ring);
         });
 
         const scaleFactor = 2; // 设置缩放系数
@@ -95,28 +95,28 @@
                     spheres[i].position.z = -landmark.z * scaleFactor;
                 }
 
-                // 将模型放置在中指的位置（假设中指的点索引为9）
-                if (model) {
-                    const middleFingerLandmark = landmarks[9];
-                    model.position.x = (middleFingerLandmark.x - 0.5) * scaleFactor * 2.2;
-                    model.position.y = -(middleFingerLandmark.y - 0.5) * scaleFactor * 3.8;
-                    model.position.z = -middleFingerLandmark.z * scaleFactor;
+                // 将戒指放置在中指的9和10之间
+                if (ring) {
+                    const point9 = landmarks[9];
+                    const point10 = landmarks[10];
+
+                    // 计算中点位置
+                    const midX = ((point9.x + point10.x) / 2 - 0.5) * scaleFactor * 2.2;
+                    const midY = -((point9.y + point10.y) / 2 - 0.5) * scaleFactor * 3.8;
+                    const midZ = -((point9.z + point10.z) / 2) * scaleFactor;
+
+                    ring.position.set(midX, midY, midZ);
 
                     // 计算旋转
-                    const indexFingerLandmark = landmarks[8];
-                    const ringFingerLandmark = landmarks[12];
-                    const dx1 = indexFingerLandmark.x - middleFingerLandmark.x;
-                    const dy1 = indexFingerLandmark.y - middleFingerLandmark.y;
-                    const dz1 = indexFingerLandmark.z - middleFingerLandmark.z;
-                    const dx2 = ringFingerLandmark.x - middleFingerLandmark.x;
-                    const dy2 = ringFingerLandmark.y - middleFingerLandmark.y;
-                    const dz2 = ringFingerLandmark.z - middleFingerLandmark.z;
+                    const dx = point10.x - point9.x;
+                    const dy = point10.y - point9.y;
+                    const dz = point10.z - point9.z;
 
-                    const angleX = Math.atan2(dy1, dz1);
-                    const angleY = Math.atan2(dx1, dz1);
-                    const angleZ = Math.atan2(dy2, dx2);
+                    const angleX = Math.atan2(dy, dz);
+                    const angleY = Math.atan2(dx, dz);
+                    const angleZ = Math.atan2(dy, dx);
 
-                    model.rotation.set(angleX, angleY, angleZ);
+                    ring.rotation.set(angleX, angleY, angleZ);
                 }
             }
 
