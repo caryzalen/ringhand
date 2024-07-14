@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web03</title>
+    <title>Web AR Hand Tracking</title>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
@@ -74,28 +74,11 @@
 
         function onResults(results) {
             if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-                const landmarks = results.multiHandLandmarks[0];
-
-                // 获取视频元素的宽高
-                const videoWidth = videoElement.videoWidth;
-                const videoHeight = videoElement.videoHeight;
-                const videoAspect = videoWidth / videoHeight;
-
-                // 获取渲染器的宽高
-                const rendererWidth = renderer.domElement.width;
-                const rendererHeight = renderer.domElement.height;
-                const rendererAspect = rendererWidth / rendererHeight;
-
-                // 根据视频和渲染器的纵横比调整坐标
-                for (let i = 0; i < landmarks.length; i++) {
-                    const landmark = landmarks[i];
-
-                    // 归一化坐标转换为Three.js坐标
-                    let x = (landmark.x * 2 - 1) * (videoAspect / rendererAspect);
-                    let y = -(landmark.y * 2 - 1);
-                    let z = -landmark.z;
-
-                    spheres[i].position.set(x, y, z);
+                for (let i = 0; i < results.multiHandLandmarks[0].length; i++) {
+                    const landmark = results.multiHandLandmarks[0][i];
+                    spheres[i].position.x = (landmark.x - 0.5) * 2;
+                    spheres[i].position.y = -(landmark.y - 0.5) * 2;
+                    spheres[i].position.z = -landmark.z;
                 }
             }
 
