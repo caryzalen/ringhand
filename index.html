@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>02</title>
+    <title>03</title>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
@@ -75,11 +75,11 @@
 
         // 加载3D模型
         const loader = new THREE.GLTFLoader();
-        let model;
+        let ring;
         loader.load('assets/ring.glb', (gltf) => {
-            model = gltf.scene;
-            model.scale.set(0.02, 0.02, 0.02); // 调整模型大小
-            scene.add(model);
+            ring = gltf.scene;
+            ring.scale.set(0.02, 0.02, 0.02); // 调整模型大小
+            scene.add(ring);
         });
 
         const scaleFactor = 2; // 设置缩放系数
@@ -106,7 +106,7 @@
                 }
 
                 // 计算模型位置 (9和10之间)
-                if (model) {
+                if (ring) {
                     const pos9 = new THREE.Vector3(
                         (landmarks[9].x - 0.5) * scaleFactor * 2.2,
                         -(landmarks[9].y - 0.5) * scaleFactor * 3.8,
@@ -117,7 +117,7 @@
                         -(landmarks[10].y - 0.5) * scaleFactor * 3.8,
                         -landmarks[10].z * scaleFactor
                     );
-                    model.position.copy(pos9).lerp(pos10, 0.5);
+                    ring.position.copy(pos9).lerp(pos10, 0.5);
 
                     // 计算平面的法向量
                     const p0 = new THREE.Vector3(
@@ -148,7 +148,7 @@
 
                     // 设置模型旋转
                     const quaternion = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), normal);
-                    model.setRotationFromQuaternion(quaternion);
+                    ring.setRotationFromQuaternion(quaternion);
 
                     // 微调戒指位置和旋转
                     const positionOffset = new THREE.Vector3(0, 0, 0); // 根据需要调整位置偏移
