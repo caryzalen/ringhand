@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>02</title>
+    <title>03</title>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
@@ -75,11 +75,11 @@
 
         // 加载3D模型
         const loader = new THREE.GLTFLoader();
-        let ringModel;
+        let ring;
         loader.load('assets/ring.glb', (gltf) => {
-            ringModel = gltf.scene;
-            ringModel.scale.set(0.03, 0.03, 0.03); // 调整模型大小
-            scene.add(ringModel);
+            ring = gltf.scene;
+            ring.scale.set(0.02, 0.02, 0.02); // 调整模型大小
+            scene.add(ring);
         });
 
         const scaleFactor = 2; // 设置缩放系数
@@ -105,8 +105,8 @@
                     spheres[i].position.z = -landmark.z * scaleFactor;
                 }
 
-                // 计算戒指的位置 (9和10之间)
-                if (ringModel) {
+                // 计算模型位置 (9和10之间)
+                if (ring) {
                     const pos9 = new THREE.Vector3(
                         (landmarks[9].x - 0.5) * scaleFactor * 2.2,
                         -(landmarks[9].y - 0.5) * scaleFactor * 3.8,
@@ -117,13 +117,9 @@
                         -(landmarks[10].y - 0.5) * scaleFactor * 3.8,
                         -landmarks[10].z * scaleFactor
                     );
-                    ringModel.position.copy(pos9).lerp(pos10, 0.5);
+                    ring.position.copy(pos9).lerp(pos10, 0.5);
 
-                    // 微调位置以模拟真实佩戴
-                    ringModel.position.y -= 0.02; // 向下移动戒指位置
-                    ringModel.position.z -= 0.01; // 进一步向内移动
-
-                    // 计算手部的旋转
+                    // 计算平面的法向量
                     const p0 = new THREE.Vector3(
                         (landmarks[0].x - 0.5) * scaleFactor * 2.2,
                         -(landmarks[0].y - 0.5) * scaleFactor * 3.8,
@@ -152,16 +148,15 @@
 
                     // 设置模型旋转
                     const quaternion = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), normal);
+                    ring.setRotationFromQuaternion(quaternion);
 
-                    // 计算手部的旋转
-                    const handXAxis = new THREE.Vector3().subVectors(p9, p5).normalize();
-                    const handYAxis = new THREE.Vector3().crossVectors(handXAxis, normal).normalize();
-                    const handZAxis = normal;
-
-                    const rotationMatrix = new THREE.Matrix4().makeBasis(handXAxis, handYAxis, handZAxis);
-                    quaternion.setFromRotationMatrix(rotationMatrix);
-
-                    ringModel.setRotationFromQuaternion(quaternion);
+                    // 微调戒指位置和旋转
+                    const positionOffset = new THREE.Vector3(0, 0, 0); // 根据需要调整位置偏移
+                    const rotationOffset = new THREE.Euler(0, 0, 0); // 根据需要调整旋转偏移
+                    ring.position.add(positionOffset);
+                    ring.rotation.x += rotationOffset.x;
+                    ring.rotation.y += rotationOffset.y;
+                    ring.rotation.z += rotationOffset.z;
                 }
             }
 
