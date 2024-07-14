@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web</title>
+    <title>02</title>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
@@ -78,7 +78,6 @@
         let ring;
         loader.load('assets/ring.glb', (gltf) => {
             ring = gltf.scene;
-            ring.scale.set(0.1, 0.1, 0.1); // 初始模型大小
             scene.add(ring);
         });
 
@@ -91,13 +90,6 @@
             });
             centroid.divideScalar(points.length);
             return centroid;
-        }
-
-        function computeDistance(point1, point2) {
-            const dx = point1.x - point2.x;
-            const dy = point1.y - point2.y;
-            const dz = point1.z - point2.z;
-            return Math.sqrt(dx * dx + dy * dy + dz * dz);
         }
 
         function onResults(results) {
@@ -126,14 +118,7 @@
                     );
                     ring.position.copy(pos9).lerp(pos10, 0.5);
 
-                    // 计算手指和摄像头之间的距离
-                    const distance = computeDistance(camera3D.position, ring.position);
-
-                    // 根据距离调整模型缩放比例
-                    const scale = 0.1 * (distance / 5); // 根据需要调整缩放比例
-                    ring.scale.set(scale, scale, scale);
-
-                    // 计算平面的法向量
+                    // 计算手部平面的法向量
                     const p0 = new THREE.Vector3(
                         (landmarks[0].x - 0.5) * scaleFactor * 2,
                         -(landmarks[0].y - 0.5) * scaleFactor * 2,
@@ -163,6 +148,12 @@
                     // 设置模型旋转
                     const quaternion = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), normal);
                     ring.setRotationFromQuaternion(quaternion);
+
+                    // 调整戒指大小基于距离
+                    const distance = pos9.distanceTo(pos10);
+                    const baseScale = 0.1; // 戒指的基准缩放比例
+                    const scale = baseScale * (1 / landmarks[9].z); // 根据深度值调整比例
+                    ring.scale.set(scale, scale, scale);
 
                     // 微调戒指位置和旋转
                     const positionOffset = new THREE.Vector3(0, 0, 0); // 根据需要调整位置偏移
