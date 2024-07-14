@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web AR Hand Tracking</title>
+    <title>01</title>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
@@ -86,10 +86,14 @@
                     spheres[i].position.z = -landmark.z * scaleFactor;
                 }
             }
+        }
 
-            // 更新渲染（仅在手部数据更新时渲染）
+        function animate() {
+            requestAnimationFrame(animate);
             renderer.render(scene, camera3D);
         }
+
+        animate();
 
         window.addEventListener('resize', () => {
             camera3D.aspect = window.innerWidth / window.innerHeight;
