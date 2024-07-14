@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>02</title>
+    <title>Web</title>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
@@ -78,7 +78,7 @@
         let ring;
         loader.load('assets/ring.glb', (gltf) => {
             ring = gltf.scene;
-            ring.scale.set(0.02, 0.02, 0.02); // 调整模型大小
+            ring.scale.set(0.05, 0.05, 0.05); // 调整模型大小
             scene.add(ring);
         });
 
@@ -108,15 +108,23 @@
                     ring.position.set(midX, midY, midZ);
 
                     // 计算旋转
-                    const dx = point10.x - point9.x;
-                    const dy = point10.y - point9.y;
-                    const dz = point10.z - point9.z;
+                    const p0 = new THREE.Vector3((landmarks[0].x - 0.5) * scaleFactor * 2, -(landmarks[0].y - 0.5) * scaleFactor * 2, -landmarks[0].z * scaleFactor);
+                    const p5 = new THREE.Vector3((landmarks[5].x - 0.5) * scaleFactor * 2, -(landmarks[5].y - 0.5) * scaleFactor * 2, -landmarks[5].z * scaleFactor);
+                    const p9 = new THREE.Vector3((landmarks[9].x - 0.5) * scaleFactor * 2, -(landmarks[9].y - 0.5) * scaleFactor * 2, -landmarks[9].z * scaleFactor);
+                    const p13 = new THREE.Vector3((landmarks[13].x - 0.5) * scaleFactor * 2, -(landmarks[13].y - 0.5) * scaleFactor * 2, -landmarks[13].z * scaleFactor);
+                    const p17 = new THREE.Vector3((landmarks[17].x - 0.5) * scaleFactor * 2, -(landmarks[17].y - 0.5) * scaleFactor * 2, -landmarks[17].z * scaleFactor);
 
-                    const angleX = Math.atan2(dy, dz);
-                    const angleY = Math.atan2(dx, dz);
-                    const angleZ = Math.atan2(dy, dx);
+                    // 计算手的平面法向量
+                    const v1 = new THREE.Vector3().subVectors(p0, p5);
+                    const v2 = new THREE.Vector3().subVectors(p13, p17);
+                    const normal = new THREE.Vector3().crossVectors(v1, v2).normalize();
 
-                    ring.rotation.set(angleX, angleY + 90, angleZ);
+                    // 计算戒指的朝向
+                    const forward = new THREE.Vector3().subVectors(p10, p9).normalize();
+                    const right = new THREE.Vector3().crossVectors(forward, normal).normalize();
+
+                    const matrix = new THREE.Matrix4().makeBasis(right, normal, forward);
+                    ring.setRotationFromMatrix(matrix);
                 }
             }
 
