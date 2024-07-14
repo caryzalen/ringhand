@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web AR Hand Tracking</title>
+    <title>01</title>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
@@ -65,7 +65,13 @@
                     const x = landmarks[i].x * 2 - 1;
                     const y = -landmarks[i].y * 2 + 1;
                     const z = landmarks[i].z * -1;
+
+                    // Update sphere position
                     spheres[i].position.set(x, y, z);
+
+                    // Adjust sphere size based on z-value
+                    const scale = 0.1 / (z + 1); // Adjust scale factor as needed
+                    spheres[i].scale.set(scale, scale, scale);
                 }
             }
             renderer.render(scene, camera);
