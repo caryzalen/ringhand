@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>01</title>
+    <title>02</title>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
@@ -149,6 +149,14 @@
                     // 设置模型旋转
                     const quaternion = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), normal);
                     model.setRotationFromQuaternion(quaternion);
+
+                    // 微调戒指位置和旋转
+                    const positionOffset = new THREE.Vector3(0, 0, 0); // 根据需要调整位置偏移
+                    const rotationOffset = new THREE.Euler(90, 90, 0); // 根据需要调整旋转偏移
+                    ring.position.add(positionOffset);
+                    ring.rotation.x += rotationOffset.x;
+                    ring.rotation.y += rotationOffset.y;
+                    ring.rotation.z += rotationOffset.z;
                 }
             }
 
