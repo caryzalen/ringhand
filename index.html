@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>02</title>
+    <title>01</title>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
@@ -75,29 +75,40 @@
 
         // 加载3D模型
         const loader = new THREE.GLTFLoader();
-        let ring;
+        let model;
         loader.load('assets/ring.glb', (gltf) => {
-            ring = gltf.scene;
-            ring.scale.set(0.02, 0.02, 0.02); // 调整模型大小
-            scene.add(ring);
+            model = gltf.scene;
+            model.scale.set(0.03, 0.03, 0.03); // 调整模型大小
+            scene.add(model);
         });
 
         const scaleFactor = 2; // 设置缩放系数
 
-        function computeCentroid(points) {
-            let centroid = new THREE.Vector3(0, 0, 0);
-            points.forEach(point => {
-                centroid.add(point);
-            });
-            centroid.divideScalar(points.length);
-            return centroid;
+        function calculateMidpoint(point1, point2) {
+            return {
+                x: (point1.x + point2.x) / 2,
+                y: (point1.y + point2.y) / 2,
+                z: (point1.z + point2.z) / 2
+            };
+        }
+
+        function calculatePlaneNormal(point0, point5, point9, point13, point17) {
+            const v1 = new THREE.Vector3(point5.x - point0.x, point5.y - point0.y, point5.z - point0.z);
+            const v2 = new THREE.Vector3(point9.x - point0.x, point9.y - point0.y, point9.z - point0.z);
+            const v3 = new THREE.Vector3(point13.x - point0.x, point13.y - point0.y, point13.z - point0.z);
+            const v4 = new THREE.Vector3(point17.x - point0.x, point17.y - point0.y, point17.z - point0.z);
+
+            const normal1 = new THREE.Vector3().crossVectors(v1, v2).normalize();
+            const normal2 = new THREE.Vector3().crossVectors(v3, v4).normalize();
+
+            const finalNormal = new THREE.Vector3().addVectors(normal1, normal2).normalize();
+            return finalNormal;
         }
 
         function onResults(results) {
             if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
                 const landmarks = results.multiHandLandmarks[0];
 
-                // 更新球的位置
                 for (let i = 0; i < landmarks.length; i++) {
                     const landmark = landmarks[i];
                     spheres[i].position.x = (landmark.x - 0.5) * scaleFactor * 2.2;
@@ -105,58 +116,33 @@
                     spheres[i].position.z = -landmark.z * scaleFactor;
                 }
 
-                // 计算模型位置 (9和10之间)
-                if (ring) {
-                    const pos9 = new THREE.Vector3(
-                        (landmarks[9].x - 0.5) * scaleFactor * 2.2,
-                        -(landmarks[9].y - 0.5) * scaleFactor * 3.8,
-                        -landmarks[9].z * scaleFactor
-                    );
-                    const pos10 = new THREE.Vector3(
-                        (landmarks[10].x - 0.5) * scaleFactor * 2.2,
-                        -(landmarks[10].y - 0.5) * scaleFactor * 3.8,
-                        -landmarks[10].z * scaleFactor
-                    );
-                    ring.position.copy(pos9).lerp(pos10, 0.5);
+                // 将模型放置在中指的9号和10号点之间
+                if (model) {
+                    const midPoint = calculateMidpoint(landmarks[9], landmarks[10]);
+                    model.position.x = (midPoint.x - 0.5) * scaleFactor * 2.2;
+                    model.position.y = -(midPoint.y - 0.5) * scaleFactor * 3.8;
+                    model.position.z = -midPoint.z * scaleFactor;
 
-                    // 计算平面的法向量
-                    const p0 = new THREE.Vector3(
-                        (landmarks[0].x - 0.5) * scaleFactor * 2.2,
-                        -(landmarks[0].y - 0.5) * scaleFactor * 3.8,
-                        -landmarks[0].z * scaleFactor
-                    );
-                    const p5 = new THREE.Vector3(
-                        (landmarks[5].x - 0.5) * scaleFactor * 2.2,
-                        -(landmarks[5].y - 0.5) * scaleFactor * 3.8,
-                        -landmarks[5].z * scaleFactor
-                    );
-                    const p9 = pos9;
-                    const p13 = new THREE.Vector3(
-                        (landmarks[13].x - 0.5) * scaleFactor * 2.2,
-                        -(landmarks[13].y - 0.5) * scaleFactor * 3.8,
-                        -landmarks[13].z * scaleFactor
-                    );
-                    const p17 = new THREE.Vector3(
-                        (landmarks[17].x - 0.5) * scaleFactor * 2.2,
-                        -(landmarks[17].y - 0.5) * scaleFactor * 3.8,
-                        -landmarks[17].z * scaleFactor
-                    );
+                    // 进行位置微调
+                    const positionAdjustment = { x: 0.01, y: -0.01, z: 0.02 };
+                    model.position.x += positionAdjustment.x;
+                    model.position.y += positionAdjustment.y;
+                    model.position.z += positionAdjustment.z;
 
-                    const v1 = new THREE.Vector3().subVectors(p5, p0);
-                    const v2 = new THREE.Vector3().subVectors(p17, p0);
-                    const normal = new THREE.Vector3().crossVectors(v1, v2).normalize();
+                    // 计算平面法向量
+                    const normal = calculatePlaneNormal(landmarks[0], landmarks[5], landmarks[9], landmarks[13], landmarks[17]);
 
-                    // 设置模型旋转
-                    const quaternion = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), normal);
-                    ring.setRotationFromQuaternion(quaternion);
+                    // 计算旋转
+                    const quaternion = new THREE.Quaternion();
+                    quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), normal);
 
-                    // 微调戒指位置和旋转
-                    const positionOffset = new THREE.Vector3(0, 0, 0); // 根据需要调整位置偏移
-                    const rotationOffset = new THREE.Euler(0, 0, 45); // 根据需要调整旋转偏移
-                    ring.position.add(positionOffset);
-                    ring.rotation.x += rotationOffset.x;
-                    ring.rotation.y += rotationOffset.y;
-                    ring.rotation.z += rotationOffset.z;
+                    // 应用旋转
+                    model.setRotationFromQuaternion(quaternion);
+
+                    // 进行旋转微调
+                    model.rotation.x += Math.PI / 2;  // 根据需要调整旋转角度
+                    model.rotation.y += 0;  // 根据需要调整旋转角度
+                    model.rotation.z += 90;  // 根据需要调整旋转角度
                 }
             }
 
